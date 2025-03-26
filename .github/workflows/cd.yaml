@@ -19,8 +19,8 @@ jobs:
       - name: set up go
         uses: actions/setup-go@v5
 
-      - name: Install goose
-        run: go install github.com/pressly/goose/v3/cmd/goose@latest
+      # - name: Install goose
+      #   run: go install github.com/pressly/goose/v3/cmd/goose@latest
 
       - name: build app
         run: ./scripts/buildprod.sh
@@ -36,8 +36,8 @@ jobs:
       - name: Use gcloud CLI
         run: gcloud builds submit --tag us-central1-docker.pkg.dev/realtor-webpage/backend/api:${{ github.sha }}
 
-      - name: Run migrations
-        run: ./scripts/migrateup.sh
+      # - name: Run migrations
+      #   run: ./scripts/migrateup.sh
 
       - name: Deploy to Cloud Run
         run: |
