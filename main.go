@@ -11,7 +11,6 @@ import (
 	"github.com/DiegoGarciaCo/websitesAPI/internal/database"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/joho/godotenv"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 )
@@ -31,10 +30,6 @@ type apiCfg struct {
 }
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatalf("Could not load .env file: %s", err)
-	}
 	port := os.Getenv("PORT")
 	if port == "" {
 		log.Fatal("PORT is not set")
@@ -100,7 +95,7 @@ func main() {
 	}
 
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins: []string{"*"},
+		AllowedOrigins: []string{"https://soldbyghost.com"},
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
 		AllowedHeaders: []string{"Content-Type", "Authorization", "X-CSRF-TOKEN"},
 	})

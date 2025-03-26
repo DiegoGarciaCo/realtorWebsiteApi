@@ -93,6 +93,7 @@ func (cfg *apiCfg) Login(w http.ResponseWriter, req *http.Request) {
 		Expires:  time.Now().Add(time.Hour),
 		Path:     "/",
 		SameSite: http.SameSiteStrictMode,
+		Domain: "soldbyghost.com",
 		HttpOnly: true,
 		Secure:   true,
 	})
@@ -102,6 +103,7 @@ func (cfg *apiCfg) Login(w http.ResponseWriter, req *http.Request) {
 		Expires:  time.Now().Add(30 * 24 * time.Hour),
 		Path:     "/",
 		SameSite: http.SameSiteStrictMode,
+		Domain: "soldbyghost.com",
 		HttpOnly: true,
 		Secure:   true,
 	})
@@ -110,7 +112,8 @@ func (cfg *apiCfg) Login(w http.ResponseWriter, req *http.Request) {
 		Value:    csrfToken,
 		Expires:  time.Now().Add(30 * 24 * time.Hour),
 		Path:     "/",
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteStrictMode,		
+		Domain: "soldbyghost.com",
 		HttpOnly: false,
 		Secure:   true,
 	})
@@ -157,6 +160,7 @@ func (cfg *apiCfg) Logout(w http.ResponseWriter, req *http.Request) {
 		MaxAge:   -1,
 		Path:     "/",
 		SameSite: http.SameSiteStrictMode,
+		Domain: "soldbyghost.com",
 		HttpOnly: true,
 		Secure:   true,
 	})
@@ -166,6 +170,7 @@ func (cfg *apiCfg) Logout(w http.ResponseWriter, req *http.Request) {
 		MaxAge:   -1,
 		Path:     "/",
 		SameSite: http.SameSiteStrictMode,
+		Domain: "soldbyghost.com",
 		HttpOnly: true,
 		Secure:   true,
 	})
@@ -175,6 +180,7 @@ func (cfg *apiCfg) Logout(w http.ResponseWriter, req *http.Request) {
 		MaxAge:   -1,
 		Path:     "/",
 		SameSite: http.SameSiteStrictMode,
+		Domain: "soldbyghost.com",
 		HttpOnly: false,
 		Secure:   true,
 	})
@@ -191,6 +197,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
+			Domain: "soldbyghost.com",
 			HttpOnly: true,
 			Secure:   true,
 		})
@@ -200,6 +207,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
+			Domain: "soldbyghost.com",
 			HttpOnly: true,
 			Secure:   true,
 		})
@@ -209,6 +217,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
+			Domain: "soldbyghost.com",
 			HttpOnly: false,
 			Secure:   true,
 		})
@@ -224,6 +233,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
+			Domain: "soldbyghost.com",
 			HttpOnly: true,
 			Secure:   true,
 		})
@@ -233,6 +243,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
+			Domain: "soldbyghost.com",
 			HttpOnly: true,
 			Secure:   true,
 		})
@@ -242,6 +253,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
+			Domain: "soldbyghost.com",
 			HttpOnly: false,
 			Secure:   true,
 		})
@@ -256,6 +268,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
+			Domain: "soldbyghost.com",
 			HttpOnly: true,
 			Secure:   true,
 		})
@@ -265,6 +278,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
+			Domain: "soldbyghost.com",
 			HttpOnly: true,
 			Secure:   true,
 		})
@@ -274,6 +288,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
+			Domain: "soldbyghost.com",
 			HttpOnly: false,
 			Secure:   true,
 		})
@@ -288,6 +303,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
+			Domain: "soldbyghost.com",
 			HttpOnly: true,
 			Secure:   true,
 		})
@@ -297,6 +313,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
+			Domain: "soldbyghost.com",
 			HttpOnly: true,
 			Secure:   true,
 		})
@@ -306,6 +323,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
+			Domain: "soldbyghost.com",
 			HttpOnly: false,
 			Secure:   true,
 		})
@@ -321,6 +339,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
+			Domain: "soldbyghost.com",
 			HttpOnly: true,
 			Secure:   true,
 		})
@@ -330,6 +349,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
+			Domain: "soldbyghost.com",
 			HttpOnly: true,
 			Secure:   true,
 		})
@@ -339,6 +359,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
+			Domain: "soldbyghost.com",
 			HttpOnly: false,
 			Secure:   true,
 		})
@@ -354,6 +375,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
+			Domain: "soldbyghost.com",
 			HttpOnly: true,
 			Secure:   true,
 		})
@@ -363,6 +385,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
+			Domain: "soldbyghost.com",
 			HttpOnly: true,
 			Secure:   true,
 		})
@@ -372,6 +395,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
+			Domain: "soldbyghost.com",
 			HttpOnly: false,
 			Secure:   true,
 		})
@@ -387,6 +411,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
+			Domain: "soldbyghost.com",
 			HttpOnly: true,
 			Secure:   true,
 		})
@@ -396,6 +421,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
+			Domain: "soldbyghost.com",
 			HttpOnly: true,
 			Secure:   true,
 		})
@@ -405,6 +431,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
+			Domain: "soldbyghost.com",
 			HttpOnly: false,
 			Secure:   true,
 		})
@@ -420,6 +447,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
+			Domain: "soldbyghost.com",
 			HttpOnly: true,
 			Secure:   true,
 		})
@@ -429,6 +457,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
+			Domain: "soldbyghost.com",
 			HttpOnly: true,
 			Secure:   true,
 		})
@@ -438,6 +467,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
+			Domain: "soldbyghost.com",
 			HttpOnly: false,
 			Secure:   true,
 		})
@@ -451,6 +481,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 		Expires:  time.Now().Add(time.Hour),
 		Path:     "/",
 		SameSite: http.SameSiteStrictMode,
+		Domain: "soldbyghost.com",
 		HttpOnly: true,
 		Secure:   true,
 	})
@@ -458,6 +489,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 		Name:     "refreshToken",
 		Value:    newRefreshToken,
 		Expires:  time.Now().Add(30 * 24 * time.Hour),
+		Domain: "soldbyghost.com",
 		Path:     "/",
 		SameSite: http.SameSiteStrictMode,
 		HttpOnly: true,
@@ -467,6 +499,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 		Name:     "csrfToken",
 		Value:    csrfToken,
 		Expires:  time.Now().Add(30 * 24 * time.Hour),
+		Domain: "soldbyghost.com",
 		Path:     "/",
 		SameSite: http.SameSiteStrictMode,
 		HttpOnly: false,
