@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Your Mortgage Payment Breakdown</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f9f9f9;
+        margin: 0;
+        padding: 0;
+        color: #333;
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #4caf50;
+        text-align: center;
+      }
+      .section {
+        margin-bottom: 20px;
+      }
+      .section h2 {
+        margin-bottom: 10px;
+        color: #444;
+      }
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .table th,
+      .table td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+      .table th {
+        background-color: #f4f4f4;
+        color: #333;
+      }
+      .table td {
+        color: #555;
+      }
+      .highlight {
+        color: #4caf50;
+        font-weight: bold;
+      }
+      .footer {
+        text-align: center;
+        margin-top: 30px;
+        font-size: 12px;
+        color: #aaa;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Your Mortgage Payment Breakdown</h1>
+
+      <p>
+        Thank you for using our mortgage calculator. Below is the detailed
+        breakdown of your mortgage based on the information you provided.
+      </p>
+
+      <div class="section">
+        <h2>Loan Details</h2>
+        <table class="table">
+          <tr>
+            <th>Price of Home</th>
+            <td>${{ .Price }}</td>
+          </tr>
+          <tr>
+            <th>Down Payment</th>
+            <td>${{ .DownPayment }}</td>
+          </tr>
+          <tr>
+            <th>Interest Rate</th>
+            <td>{{ .Interest | printf "%.2f"}}%</td>
+          </tr>
+          <tr>
+            <th>Loan Term</th>
+            <td>{{ .Years }} years</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2>Payment Breakdown</h2>
+        <table class="table">
+          <tr>
+            <th>Monthly Payment</th>
+            <td>${{ .Payment | printf "%.2f" }}</td>
+          </tr>
+          <tr>
+            <th>Monthly PMI Insurance</th>
+            <td>${{ .MonthlyPMI | printf "%.2f" }}</td>
+          </tr>
+          <tr>
+            <th>Monthly Taxes</th>
+            <td>${{ .Taxes | printf "%.2f" }}</td>
+          </tr>
+          <tr>
+            <th>Monthly Insurance</th>
+            <td>${{ .Insurance | printf "%.2f" }}</td>
+          </tr>
+          <tr>
+            <th><span class="highlight">Total Monthly Payment</span></th>
+            <td>
+              <span class="highlight"
+                >${{ .TotalPayment | printf "%.2f" }}</span
+              >
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="footer">
+        <p>
+          If you have any questions or need further assistance, feel free to
+          reach out to us.
+        </p>
+        <p>Thank you for choosing our service!</p>
+      </div>
+    </div>
+  </body>
+</html>
