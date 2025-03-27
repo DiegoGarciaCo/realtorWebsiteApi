@@ -1,5 +1,5 @@
 -- name: ListPublishedPosts :many
-SELECT id, title, slug, excerpt, created_at, tags, thumbnail, published_at, author
+SELECT id, title, slug, excerpt, content, created_at, tags, thumbnail, published_at, author
 FROM posts
 WHERE status = 'published'
 ORDER BY created_at DESC;
@@ -25,7 +25,7 @@ DELETE FROM posts
 WHERE id = $1;
 
 -- name: ListAllPosts :many
-SELECT id, title, slug, excerpt, author, published_at, thumbnail, status, created_at, tags
+SELECT id, title, slug, excerpt, content, author, published_at, thumbnail, status, created_at, tags
 FROM posts
 ORDER BY created_at DESC;
 

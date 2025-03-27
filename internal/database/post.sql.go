@@ -120,7 +120,7 @@ func (q *Queries) GetPostBySlug(ctx context.Context, slug string) (GetPostBySlug
 }
 
 const listAllPosts = `-- name: ListAllPosts :many
-SELECT id, title, slug, excerpt, author, published_at, thumbnail, status, created_at, tags
+SELECT id, title, slug, excerpt, content, author, published_at, thumbnail, status, created_at, tags
 FROM posts
 ORDER BY created_at DESC
 `
@@ -130,6 +130,7 @@ type ListAllPostsRow struct {
 	Title       string
 	Slug        string
 	Excerpt     sql.NullString
+	Content     string
 	Author      sql.NullString
 	PublishedAt sql.NullTime
 	Thumbnail   sql.NullString
@@ -152,6 +153,7 @@ func (q *Queries) ListAllPosts(ctx context.Context) ([]ListAllPostsRow, error) {
 			&i.Title,
 			&i.Slug,
 			&i.Excerpt,
+			&i.Content,
 			&i.Author,
 			&i.PublishedAt,
 			&i.Thumbnail,
@@ -173,7 +175,7 @@ func (q *Queries) ListAllPosts(ctx context.Context) ([]ListAllPostsRow, error) {
 }
 
 const listPublishedPosts = `-- name: ListPublishedPosts :many
-SELECT id, title, slug, excerpt, created_at, tags, thumbnail, published_at, author
+SELECT id, title, slug, excerpt, content, created_at, tags, thumbnail, published_at, author
 FROM posts
 WHERE status = 'published'
 ORDER BY created_at DESC
@@ -184,6 +186,7 @@ type ListPublishedPostsRow struct {
 	Title       string
 	Slug        string
 	Excerpt     sql.NullString
+	Content     string
 	CreatedAt   sql.NullTime
 	Tags        []string
 	Thumbnail   sql.NullString
@@ -205,6 +208,7 @@ func (q *Queries) ListPublishedPosts(ctx context.Context) ([]ListPublishedPostsR
 			&i.Title,
 			&i.Slug,
 			&i.Excerpt,
+			&i.Content,
 			&i.CreatedAt,
 			pq.Array(&i.Tags),
 			&i.Thumbnail,
