@@ -46,6 +46,14 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 	if err != nil {
 		return uuid.Nil, err
 	}
+
+	expirationTime, err := token.Claims.GetExpirationTime()
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("failed to get expiration time: %v", err)
+	}
+	if expirationTime.Before(time.Now()) {
+		return uuid.Nil, fmt.Errorf("token expired")
+	}
 	userIDString, err := token.Claims.GetSubject()
 	if err != nil {
 		return uuid.Nil, err

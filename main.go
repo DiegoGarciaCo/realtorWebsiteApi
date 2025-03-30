@@ -11,6 +11,7 @@ import (
 	"github.com/DiegoGarciaCo/websitesAPI/internal/database"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/joho/godotenv"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 )
@@ -27,12 +28,21 @@ type apiCfg struct {
 	S3Client    *s3.Client
 	S3Bucket    string
 	S3Region    string
+	Env         string
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 	port := os.Getenv("PORT")
 	if port == "" {
 		log.Fatal("PORT is not set")
+	}
+	env := os.Getenv("ENV")
+	if env == "" {
+		env = "Production"
 	}
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
@@ -92,12 +102,14 @@ func main() {
 		S3Client:    client,
 		S3Bucket:    s3Bucket,
 		S3Region:    s3Region,
+		Env:         env,
 	}
 
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins: []string{"https://soldbyghost.com"},
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
+		AllowedOrigins: []string{"http://localhost:3000"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{"Content-Type", "Authorization", "X-CSRF-TOKEN"},
+		AllowCredentials: true,
 	})
 
 	mux := http.NewServeMux()
@@ -111,7 +123,7 @@ func main() {
 	mux.HandleFunc("POST /api/auth/login", apiCfg.Login)
 	mux.HandleFunc("POST /api/auth/logout", apiCfg.Logout)
 	mux.HandleFunc("POST /api/auth/refresh", apiCfg.RefreshToken)
-	mux.HandleFunc("GET /api/auth/validate", apiCfg.ValidateJWT)
+	mux.HandleFunc("POST /api/auth/validate", apiCfg.ValidateJWT)
 
 	// Posts
 	mux.HandleFunc("GET /api/posts/{slug}", apiCfg.postBySlug)
@@ -123,7 +135,7 @@ func main() {
 	mux.HandleFunc("PUT /api/posts/update/{id}", apiCfg.AuthMiddleware(apiCfg.updatePost))
 	mux.HandleFunc("DELETE /api/posts/delete/{id}", apiCfg.AuthMiddleware(apiCfg.deletePost))
 
-	handler := corsHandler.Handler(LoggerMiddleware(RecoveryMiddleware(mux)))
+	handler := LoggerMiddleware(corsHandler.Handler(RecoveryMiddleware(mux)))
 
 	srv := &http.Server{
 		Addr:              apiCfg.port,

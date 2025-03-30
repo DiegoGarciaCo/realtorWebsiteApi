@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"runtime/debug"
 	"time"
@@ -87,42 +88,28 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 
 // Authentication middleware with role support
 func (cfg *apiCfg) AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, req *http.Request) {
-		token, err := req.Cookie("token")
-		if err != nil {
-			respondWithError(w, http.StatusUnauthorized, "Invalid token", err)
-			return
-		}
+    return func(w http.ResponseWriter, req *http.Request) {
+        token, err := req.Cookie("token")
+        if err != nil {
+            log.Print("Error getting token: ", err)
+            respondWithError(w, http.StatusUnauthorized, "Invalid token", err)
+            return
+        }
 
-		csrf := req.Header.Get("X-CSRF-TOKEN")
-		if csrf == "" {
-			respondWithError(w, http.StatusUnauthorized, "Invalid csrf token", nil)
-			return
-		}
+        userID, err := auth.ValidateJWT(token.Value, cfg.secret)
+        if err != nil {
+            log.Print("Error validating token: ", err)
+            respondWithError(w, http.StatusUnauthorized, "Invalid token", err)
+            return
+        }
 
-		dbCsrf, err := cfg.DB.GetCsfToken(req.Context(), csrf)
-		if err != nil {
-			respondWithError(w, http.StatusUnauthorized, "Invalid csrf token", err)
-			return
-		}
+        _, err = cfg.DB.GetUserByID(req.Context(), userID)
+        if err != nil {
+            log.Print("Error getting user: ", err)
+            respondWithError(w, http.StatusUnauthorized, "User not found", err)
+            return
+        }
 
-		userID, err := auth.ValidateJWT(token.Value, cfg.secret)
-		if err != nil {
-			respondWithError(w, http.StatusUnauthorized, "Invalid token", err)
-			return
-		}
-
-		if dbCsrf.UserID != userID {
-			respondWithError(w, http.StatusUnauthorized, "Invalid csrf token", nil)
-			return
-		}
-
-		_, err = cfg.DB.GetUserByID(req.Context(), userID)
-		if err != nil {
-			respondWithError(w, http.StatusUnauthorized, "User not found", err)
-			return
-		}
-
-		next(w, req)
-	}
+        next(w, req)
+    }
 }

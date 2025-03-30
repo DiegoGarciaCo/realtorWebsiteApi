@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -19,43 +20,49 @@ func (cfg *apiCfg) Login(w http.ResponseWriter, req *http.Request) {
 	decoder := json.NewDecoder(req.Body)
 	err := decoder.Decode(&credentials)
 	if err != nil {
+		log.Printf("Error decoding request: %s", err)
 		respondWithError(w, http.StatusInternalServerError, "Could not decode request", err)
 		return
 	}
 
 	user, err := cfg.DB.GetUserByUsername(req.Context(), credentials.Username)
 	if err != nil {
+		log.Printf("Error getting user: %s", err)
 		respondWithError(w, http.StatusUnauthorized, "Could not find user with that username", err)
 		return
 	}
 
 	err = auth.CheckPasswordHash(credentials.Password, user.PasswordHash.String)
 	if err != nil {
+		log.Printf("Error checking password: %s", err)
 		respondWithError(w, http.StatusUnauthorized, "Incorrect username or password", err)
 		return
 	}
 
 	token, err := auth.MakeJWT(user.ID, cfg.secret, time.Hour)
 	if err != nil {
+		log.Printf("Error making token: %s", err)
 		respondWithError(w, http.StatusInternalServerError, "Could not generate token", err)
 		return
 	}
 
 	refreshToken, err := auth.MakeRefreshToken()
 	if err != nil {
-
+		log.Printf("Error making refresh token: %s", err)
 		respondWithError(w, http.StatusInternalServerError, "Could not generate refresh token", err)
 		return
 	}
 
 	csrfToken, err := auth.MakeToken()
 	if err != nil {
+		log.Printf("Error making csrf token: %s", err)
 		respondWithError(w, http.StatusInternalServerError, "Could not generate csrf token", err)
 		return
 	}
 
 	tx, err := cfg.SQLDB.BeginTx(req.Context(), nil)
 	if err != nil {
+		log.Printf("Error beginning transaction: %s", err)
 		respondWithError(w, http.StatusInternalServerError, "Could not begin transaction", err)
 		return
 	}
@@ -68,6 +75,7 @@ func (cfg *apiCfg) Login(w http.ResponseWriter, req *http.Request) {
 		UserID: user.ID,
 	})
 	if err != nil {
+		log.Printf("Error storing csrf token: %s", err)
 		respondWithError(w, http.StatusInternalServerError, "Could not store csrf token", err)
 		return
 	}
@@ -78,13 +86,20 @@ func (cfg *apiCfg) Login(w http.ResponseWriter, req *http.Request) {
 		ExpiresAt: time.Now().Add(30 * 24 * time.Hour),
 	})
 	if err != nil {
+		log.Printf("Error storing refresh token: %s", err)
 		respondWithError(w, http.StatusInternalServerError, "Could not store refresh token", err)
 		return
 	}
 
 	if err := tx.Commit(); err != nil {
+		log.Printf("Error committing transaction: %s", err)
 		respondWithError(w, http.StatusInternalServerError, "Could not commit transaction", err)
 		return
+	}
+	domain := "localhost"
+	var secure bool
+	if cfg.Env != "dev" {
+		domain = "soldbyghost.com"
 	}
 
 	http.SetCookie(w, &http.Cookie{
@@ -92,31 +107,32 @@ func (cfg *apiCfg) Login(w http.ResponseWriter, req *http.Request) {
 		Value:    token,
 		Expires:  time.Now().Add(time.Hour),
 		Path:     "/",
-		SameSite: http.SameSiteStrictMode,
-		Domain: "soldbyghost.com",
+		SameSite: http.SameSiteLaxMode,
+		Domain: domain,
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   secure,
 	})
 	http.SetCookie(w, &http.Cookie{
 		Name:     "refreshToken",
 		Value:    refreshToken,
 		Expires:  time.Now().Add(30 * 24 * time.Hour),
 		Path:     "/",
-		SameSite: http.SameSiteStrictMode,
-		Domain: "soldbyghost.com",
+		SameSite: http.SameSiteLaxMode,
+		Domain: domain,
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   secure,
 	})
 	http.SetCookie(w, &http.Cookie{
 		Name:     "csrfToken",
 		Value:    csrfToken,
 		Expires:  time.Now().Add(30 * 24 * time.Hour),
 		Path:     "/",
-		SameSite: http.SameSiteStrictMode,		
-		Domain: "soldbyghost.com",
+		SameSite: http.SameSiteLaxMode,		
+		Domain: domain,
 		HttpOnly: false,
-		Secure:   true,
+		Secure:   secure,
 	})
+	log.Print("User logged in")
 
 	respondWithJSON(w, http.StatusNoContent, nil)
 }
@@ -153,42 +169,53 @@ func (cfg *apiCfg) Logout(w http.ResponseWriter, req *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "Could not delete csrf token", err)
 		return
 	}
+	domain := "localhost"
+	var secure bool
+	if cfg.Env == "dev" {
+		domain = "soldbbyghost.com"
+	} 
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "token",
 		Value:    "",
 		MaxAge:   -1,
 		Path:     "/",
-		SameSite: http.SameSiteStrictMode,
-		Domain: "soldbyghost.com",
+		SameSite: http.SameSiteLaxMode,
+		Domain: domain,
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   secure,
 	})
 	http.SetCookie(w, &http.Cookie{
 		Name:     "refreshToken",
 		Value:    "",
 		MaxAge:   -1,
 		Path:     "/",
-		SameSite: http.SameSiteStrictMode,
-		Domain: "soldbyghost.com",
+		SameSite: http.SameSiteLaxMode,
+		Domain: domain,
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   secure,
 	})
 	http.SetCookie(w, &http.Cookie{
 		Name:     "csrfToken",
 		Value:    "",
 		MaxAge:   -1,
 		Path:     "/",
-		SameSite: http.SameSiteStrictMode,
-		Domain: "soldbyghost.com",
+		SameSite: http.SameSiteLaxMode,
+		Domain: domain,
 		HttpOnly: false,
-		Secure:   true,
+		Secure:   secure,
 	})
 
 	respondWithJSON(w, http.StatusNoContent, nil)
 }
 
 func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
+	domain := "localhost"
+	var secure bool
+	if cfg.Env == "dev" {
+		domain = "soldbbyghost.com"
+		secure = false
+	} 
 	refreshToken, err := req.Cookie("refreshToken")
 	if err != nil {
 		http.SetCookie(w, &http.Cookie{
@@ -196,30 +223,30 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			Value:    "",
 			MaxAge:   -1,
 			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Domain: "soldbyghost.com",
+			SameSite: http.SameSiteLaxMode,
+			Domain: domain,
 			HttpOnly: true,
-			Secure:   true,
+			Secure:   secure,
 		})
 		http.SetCookie(w, &http.Cookie{
 			Name:     "token",
 			Value:    "",
 			MaxAge:   -1,
 			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Domain: "soldbyghost.com",
+			SameSite: http.SameSiteLaxMode,
+			Domain: domain,
 			HttpOnly: true,
-			Secure:   true,
+			Secure:   secure,
 		})
 		http.SetCookie(w, &http.Cookie{
 			Name:     "csrfToken",
 			Value:    "",
 			MaxAge:   -1,
 			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Domain: "soldbyghost.com",
+			SameSite: http.SameSiteLaxMode,
+			Domain: domain,
 			HttpOnly: false,
-			Secure:   true,
+			Secure:   secure,
 		})
 		respondWithError(w, http.StatusBadRequest, "Could not find refresh token", err)
 		return
@@ -232,30 +259,30 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			Value:    "",
 			MaxAge:   -1,
 			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Domain: "soldbyghost.com",
+			SameSite: http.SameSiteLaxMode,
+			Domain: domain,
 			HttpOnly: true,
-			Secure:   true,
+			Secure:   secure,
 		})
 		http.SetCookie(w, &http.Cookie{
 			Name:     "token",
 			Value:    "",
 			MaxAge:   -1,
 			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Domain: "soldbyghost.com",
+			SameSite: http.SameSiteLaxMode,
+			Domain: domain,
 			HttpOnly: true,
-			Secure:   true,
+			Secure:   secure,
 		})
 		http.SetCookie(w, &http.Cookie{
 			Name:     "csrfToken",
 			Value:    "",
 			MaxAge:   -1,
 			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Domain: "soldbyghost.com",
+			SameSite: http.SameSiteLaxMode,
+			Domain: domain,
 			HttpOnly: false,
-			Secure:   true,
+			Secure:   secure,
 		})
 		respondWithError(w, http.StatusBadRequest, "Could not find refresh token", err)
 		return
@@ -267,30 +294,30 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			Value:    "",
 			MaxAge:   -1,
 			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Domain: "soldbyghost.com",
+			SameSite: http.SameSiteLaxMode,
+			Domain: domain, 
 			HttpOnly: true,
-			Secure:   true,
+			Secure:   secure,
 		})
 		http.SetCookie(w, &http.Cookie{
 			Name:     "token",
 			Value:    "",
 			MaxAge:   -1,
 			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Domain: "soldbyghost.com",
+			SameSite: http.SameSiteLaxMode,
+			Domain: domain,
 			HttpOnly: true,
-			Secure:   true,
+			Secure:   secure,
 		})
 		http.SetCookie(w, &http.Cookie{
 			Name:     "csrfToken",
 			Value:    "",
 			MaxAge:   -1,
 			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Domain: "soldbyghost.com",
+			SameSite: http.SameSiteLaxMode,
+			Domain: domain,
 			HttpOnly: false,
-			Secure:   true,
+			Secure:   secure,
 		})
 		respondWithError(w, http.StatusUnauthorized, "Refresh token has expired", nil)
 		return
@@ -302,30 +329,30 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			Value:    "",
 			MaxAge:   -1,
 			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Domain: "soldbyghost.com",
+			SameSite: http.SameSiteLaxMode,
+			Domain: domain, 
 			HttpOnly: true,
-			Secure:   true,
+			Secure:   secure,
 		})
 		http.SetCookie(w, &http.Cookie{
 			Name:     "token",
 			Value:    "",
 			MaxAge:   -1,
 			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Domain: "soldbyghost.com",
+			SameSite: http.SameSiteLaxMode,
+			Domain: domain,
 			HttpOnly: true,
-			Secure:   true,
+			Secure:   secure,
 		})
 		http.SetCookie(w, &http.Cookie{
 			Name:     "csrfToken",
 			Value:    "",
 			MaxAge:   -1,
 			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Domain: "soldbyghost.com",
+			SameSite: http.SameSiteLaxMode,
+			Domain: domain,
 			HttpOnly: false,
-			Secure:   true,
+			Secure:   secure,
 		})
 		respondWithError(w, http.StatusUnauthorized, "Refresh token has been revoked", nil)
 		return
@@ -338,30 +365,30 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			Value:    "",
 			MaxAge:   -1,
 			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Domain: "soldbyghost.com",
+			SameSite: http.SameSiteLaxMode,
+			Domain: domain,  
 			HttpOnly: true,
-			Secure:   true,
+			Secure:   secure,
 		})
 		http.SetCookie(w, &http.Cookie{
 			Name:     "token",
 			Value:    "",
 			MaxAge:   -1,
 			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Domain: "soldbyghost.com",
+			SameSite: http.SameSiteLaxMode,
+			Domain: domain,
 			HttpOnly: true,
-			Secure:   true,
+			Secure:   secure,
 		})
 		http.SetCookie(w, &http.Cookie{
 			Name:     "csrfToken",
 			Value:    "",
 			MaxAge:   -1,
 			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Domain: "soldbyghost.com",
+			SameSite: http.SameSiteLaxMode,
+			Domain: domain,
 			HttpOnly: false,
-			Secure:   true,
+			Secure:   secure,
 		})
 		respondWithError(w, http.StatusInternalServerError, "Could not find user", err)
 		return
@@ -374,30 +401,30 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			Value:    "",
 			MaxAge:   -1,
 			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Domain: "soldbyghost.com",
+			SameSite: http.SameSiteLaxMode,
+			Domain: domain,  
 			HttpOnly: true,
-			Secure:   true,
+			Secure:   secure,
 		})
 		http.SetCookie(w, &http.Cookie{
 			Name:     "token",
 			Value:    "",
 			MaxAge:   -1,
 			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Domain: "soldbyghost.com",
+			SameSite: http.SameSiteLaxMode,
+			Domain: domain,
 			HttpOnly: true,
-			Secure:   true,
+			Secure:   secure,
 		})
 		http.SetCookie(w, &http.Cookie{
 			Name:     "csrfToken",
 			Value:    "",
 			MaxAge:   -1,
 			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Domain: "soldbyghost.com",
+			SameSite: http.SameSiteLaxMode,
+			Domain: domain,
 			HttpOnly: false,
-			Secure:   true,
+			Secure:   secure,
 		})
 		respondWithError(w, http.StatusInternalServerError, "Could not generate JWT token", err)
 		return
@@ -410,30 +437,30 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			Value:    "",
 			MaxAge:   -1,
 			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Domain: "soldbyghost.com",
+			SameSite: http.SameSiteLaxMode,
+			Domain: domain,  
 			HttpOnly: true,
-			Secure:   true,
+			Secure:   secure,
 		})
 		http.SetCookie(w, &http.Cookie{
 			Name:     "token",
 			Value:    "",
 			MaxAge:   -1,
 			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Domain: "soldbyghost.com",
+			SameSite: http.SameSiteLaxMode,
+			Domain: domain,
 			HttpOnly: true,
-			Secure:   true,
+			Secure:   secure,
 		})
 		http.SetCookie(w, &http.Cookie{
 			Name:     "csrfToken",
 			Value:    "",
 			MaxAge:   -1,
 			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Domain: "soldbyghost.com",
+			SameSite: http.SameSiteLaxMode,
+			Domain: domain,
 			HttpOnly: false,
-			Secure:   true,
+			Secure:   secure,
 		})
 		respondWithError(w, http.StatusInternalServerError, "Could not generate refresh token", err)
 		return
@@ -446,30 +473,30 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			Value:    "",
 			MaxAge:   -1,
 			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Domain: "soldbyghost.com",
+			SameSite: http.SameSiteLaxMode,
+			Domain: domain,
 			HttpOnly: true,
-			Secure:   true,
+			Secure:   secure,
 		})
 		http.SetCookie(w, &http.Cookie{
 			Name:     "token",
 			Value:    "",
 			MaxAge:   -1,
 			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Domain: "soldbyghost.com",
+			SameSite: http.SameSiteLaxMode,
+			Domain: domain,
 			HttpOnly: true,
-			Secure:   true,
+			Secure:   secure,
 		})
 		http.SetCookie(w, &http.Cookie{
 			Name:     "csrfToken",
 			Value:    "",
 			MaxAge:   -1,
 			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Domain: "soldbyghost.com",
+			SameSite: http.SameSiteLaxMode,
+			Domain: domain,
 			HttpOnly: false,
-			Secure:   true,
+			Secure:   secure,
 		})
 		respondWithError(w, http.StatusInternalServerError, "Could not generate csrf token", err)
 		return
@@ -480,30 +507,30 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 		Value:    JwtToken,
 		Expires:  time.Now().Add(time.Hour),
 		Path:     "/",
-		SameSite: http.SameSiteStrictMode,
-		Domain: "soldbyghost.com",
+		SameSite: http.SameSiteLaxMode,
+		Domain: domain,  
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   secure,
 	})
 	http.SetCookie(w, &http.Cookie{
 		Name:     "refreshToken",
 		Value:    newRefreshToken,
 		Expires:  time.Now().Add(30 * 24 * time.Hour),
-		Domain: "soldbyghost.com",
+		Domain: domain,
 		Path:     "/",
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteLaxMode,
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   secure,
 	})
 	http.SetCookie(w, &http.Cookie{
 		Name:     "csrfToken",
 		Value:    csrfToken,
 		Expires:  time.Now().Add(30 * 24 * time.Hour),
-		Domain: "soldbyghost.com",
+		Domain: domain,
 		Path:     "/",
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteLaxMode,
 		HttpOnly: false,
-		Secure:   true,
+		Secure:   secure,
 	})
 
 	respondWithJSON(w, http.StatusNoContent, nil)

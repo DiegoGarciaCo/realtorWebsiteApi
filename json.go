@@ -22,17 +22,24 @@ func respondWithError(w http.ResponseWriter, code int, msg string, err error) {
 }
 
 func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	data, err := json.Marshal(payload)
-	if err != nil {
-		log.Printf("Error marshalling JSON: %s", err)
-		w.WriteHeader(500)
-		return
-	}
-	w.WriteHeader(code)
-	_, err = w.Write(data)
-	if err != nil {
-		http.Error(w, "could not send data", http.StatusInternalServerError)
-		return
-	}
+    w.Header().Set("Content-Type", "application/json")
+
+    // Skip body for no-content statuses
+    if code == http.StatusNoContent || code == http.StatusAccepted {
+        w.WriteHeader(code)
+        return
+    }
+
+    // Marshal and write payload for other statuses
+    data, err := json.Marshal(payload)
+    if err != nil {
+        log.Printf("Error marshalling JSON: %s", err)
+        w.WriteHeader(http.StatusInternalServerError)
+        return
+    }
+    w.WriteHeader(code)
+    if _, err := w.Write(data); err != nil {
+        log.Printf("Error writing response: %s", err)
+        // Can't call WriteHeader again, response already sent
+    }
 }
