@@ -111,7 +111,7 @@ func main() {
 
 	// Lead Submission
 	mux.HandleFunc("POST /api/submit/form", apiCfg.submitForm)
-	mux.HandleFunc("POST /api/rateLeads", apiCfg.calculateMortgage)
+	mux.HandleFunc("POST /api/calculator", apiCfg.calculateMortgage)
 	mux.HandleFunc("POST /api/estimate", apiCfg.Estimate)
 
 	// Auth
