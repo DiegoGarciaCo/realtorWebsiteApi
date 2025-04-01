@@ -18,9 +18,12 @@ func (cfg *apiCfg) PublishPost(w http.ResponseWriter, req *http.Request) {
 			respondWithError(w, http.StatusBadRequest, "Invalid UUID", err)
 			return
 		}
-		err = cfg.DB.UpdatePostStatus(req.Context(), database.UpdatePostStatusParams{
-			ID:     UUID,
-			Status: sql.NullString{String: "published", Valid: true},
+		err = cfg.DB.PublishPost(req.Context(), database.PublishPostParams{
+			ID: UUID,
+			Status: sql.NullString{
+				String: "published",
+				Valid:  true,
+			},
 		})
 
 		if err != nil {

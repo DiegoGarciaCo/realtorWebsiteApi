@@ -9,6 +9,16 @@ SELECT id, title, slug, content, excerpt, status, author, published_at, thumbnai
 FROM posts
 WHERE slug = $1;
 
+-- name: GetPostThumbnailById :one
+SELECT id, thumbnail, created_at, updated_at
+FROM posts
+WHERE id = $1;
+
+-- name: UpdatePostThumbnail :exec
+UPDATE posts
+SET thumbnail = $2, updated_at = CURRENT_TIMESTAMP
+WHERE id = $1;
+
 -- name: CreatePost :one
 INSERT INTO posts (title, slug, content, excerpt, author, published_at, status, tags)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -16,25 +26,32 @@ RETURNING id, title, slug, content, excerpt, status, created_at, updated_at, tag
 
 -- name: UpdatePost :one
 UPDATE posts
-SET title = $2, slug = $3, content = $4, excerpt = $5, author = $5, status = $6, tags = $7, updated_at = CURRENT_TIMESTAMP
+SET title = $2, slug = $3, content = $4, excerpt = $5, author = $6, status = $7, tags = $8, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1
 RETURNING id, title, slug, content, excerpt, status, created_at, updated_at, tags;
 
--- name: DeletePost :exec
+-- name: SaveAndPublishPost :one
+UPDATE posts
+SET title = $2, slug = $3, content = $4, excerpt = $5, author = $6, status = $7, tags = $8, updated_at = CURRENT_TIMESTAMP, published_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING id, title, slug, content, excerpt, status, created_at, updated_at, tags;
+
+-- name: DeletePost :one
 DELETE FROM posts
-WHERE id = $1;
+WHERE id = $1 RETURNING id, thumbnail;
 
 -- name: ListAllPosts :many
 SELECT id, title, slug, excerpt, content, author, published_at, thumbnail, status, created_at, tags
 FROM posts
 ORDER BY created_at DESC;
 
--- name: UpdatePostStatus :exec
+-- name: PublishPost :exec
 UPDATE posts
-SET status = $2
+SET status = $2, updated_at = CURRENT_TIMESTAMP, published_at = CURRENT_TIMESTAMP
 WHERE id = $1;
 
--- name: UpdatePostThumbnail :exec
+-- name: UnpublishPost :exec
 UPDATE posts
-SET thumbnail = $2
+SET status = "draft", updated_at = CURRENT_TIMESTAMP, published_at = NULL
 WHERE id = $1;
+

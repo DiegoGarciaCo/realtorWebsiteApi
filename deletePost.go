@@ -15,12 +15,23 @@ func (cfg *apiCfg) deletePost(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err = cfg.DB.DeletePost(req.Context(), UUID)
+	post, err := cfg.DB.DeletePost(req.Context(), UUID)
 
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Something went wrong", err)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, "Post deleted")
+	if !post.Thumbnail.Valid {
+		respondWithJSON(w, http.StatusNoContent, nil)
+		return
+	}
+
+	err = deleteFromS3(cfg, req.Context(), post.Thumbnail.String)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Could not delete image from S3", err)
+		return
+	}
+
+	respondWithJSON(w, http.StatusNoContent, nil)
 }

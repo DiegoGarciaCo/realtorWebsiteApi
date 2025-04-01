@@ -101,7 +101,7 @@ func main() {
 	}
 
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins: []string{"http://localhost:3000"},
+		AllowedOrigins: []string{"https://soldbyghost.com", "http://localhost:3000"},
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{"Content-Type", "Authorization", "X-CSRF-TOKEN"},
 		AllowCredentials: true,
@@ -126,8 +126,11 @@ func main() {
 	mux.HandleFunc("GET /api/posts", apiCfg.AuthMiddleware(apiCfg.allPosts))
 	mux.HandleFunc("POST /api/posts/draft", apiCfg.AuthMiddleware(apiCfg.createDraftPost))
 	mux.HandleFunc("POST /api/posts/publish/{id}", apiCfg.AuthMiddleware(apiCfg.PublishPost))
+	mux.HandleFunc("PUT /api/posts/publish/{id}", apiCfg.AuthMiddleware(apiCfg.SaveAndPublishPost))
+	mux.HandleFunc("POST /api/posts/publish", apiCfg.AuthMiddleware(apiCfg.PublishPost))
 	mux.HandleFunc("POST /api/posts/thumbnail/{id}", apiCfg.AuthMiddleware(apiCfg.uploadThumnail))
-	mux.HandleFunc("PUT /api/posts/update/{id}", apiCfg.AuthMiddleware(apiCfg.updatePost))
+	mux.HandleFunc("PUT /api/posts/thumbnail/{id}", apiCfg.AuthMiddleware(apiCfg.UpdateThumbnail))
+	mux.HandleFunc("PUT /api/posts", apiCfg.AuthMiddleware(apiCfg.updatePost))
 	mux.HandleFunc("DELETE /api/posts/delete/{id}", apiCfg.AuthMiddleware(apiCfg.deletePost))
 
 	handler := LoggerMiddleware(corsHandler.Handler(RecoveryMiddleware(mux)))

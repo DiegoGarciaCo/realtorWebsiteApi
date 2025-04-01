@@ -68,14 +68,21 @@ func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (CreateP
 	return i, err
 }
 
-const deletePost = `-- name: DeletePost :exec
+const deletePost = `-- name: DeletePost :one
 DELETE FROM posts
-WHERE id = $1
+WHERE id = $1 RETURNING id, thumbnail
 `
 
-func (q *Queries) DeletePost(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deletePost, id)
-	return err
+type DeletePostRow struct {
+	ID        uuid.UUID
+	Thumbnail sql.NullString
+}
+
+func (q *Queries) DeletePost(ctx context.Context, id uuid.UUID) (DeletePostRow, error) {
+	row := q.db.QueryRowContext(ctx, deletePost, id)
+	var i DeletePostRow
+	err := row.Scan(&i.ID, &i.Thumbnail)
+	return i, err
 }
 
 const getPostBySlug = `-- name: GetPostBySlug :one
@@ -115,6 +122,31 @@ func (q *Queries) GetPostBySlug(ctx context.Context, slug string) (GetPostBySlug
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		pq.Array(&i.Tags),
+	)
+	return i, err
+}
+
+const getPostThumbnailById = `-- name: GetPostThumbnailById :one
+SELECT id, thumbnail, created_at, updated_at
+FROM posts
+WHERE id = $1
+`
+
+type GetPostThumbnailByIdRow struct {
+	ID        uuid.UUID
+	Thumbnail sql.NullString
+	CreatedAt sql.NullTime
+	UpdatedAt sql.NullTime
+}
+
+func (q *Queries) GetPostThumbnailById(ctx context.Context, id uuid.UUID) (GetPostThumbnailByIdRow, error) {
+	row := q.db.QueryRowContext(ctx, getPostThumbnailById, id)
+	var i GetPostThumbnailByIdRow
+	err := row.Scan(
+		&i.ID,
+		&i.Thumbnail,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -228,9 +260,92 @@ func (q *Queries) ListPublishedPosts(ctx context.Context) ([]ListPublishedPostsR
 	return items, nil
 }
 
+const publishPost = `-- name: PublishPost :exec
+UPDATE posts
+SET status = $2, updated_at = CURRENT_TIMESTAMP, published_at = CURRENT_TIMESTAMP
+WHERE id = $1
+`
+
+type PublishPostParams struct {
+	ID     uuid.UUID
+	Status sql.NullString
+}
+
+func (q *Queries) PublishPost(ctx context.Context, arg PublishPostParams) error {
+	_, err := q.db.ExecContext(ctx, publishPost, arg.ID, arg.Status)
+	return err
+}
+
+const saveAndPublishPost = `-- name: SaveAndPublishPost :one
+UPDATE posts
+SET title = $2, slug = $3, content = $4, excerpt = $5, author = $6, status = $7, tags = $8, updated_at = CURRENT_TIMESTAMP, published_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING id, title, slug, content, excerpt, status, created_at, updated_at, tags
+`
+
+type SaveAndPublishPostParams struct {
+	ID      uuid.UUID
+	Title   string
+	Slug    string
+	Content string
+	Excerpt sql.NullString
+	Author  sql.NullString
+	Status  sql.NullString
+	Tags    []string
+}
+
+type SaveAndPublishPostRow struct {
+	ID        uuid.UUID
+	Title     string
+	Slug      string
+	Content   string
+	Excerpt   sql.NullString
+	Status    sql.NullString
+	CreatedAt sql.NullTime
+	UpdatedAt sql.NullTime
+	Tags      []string
+}
+
+func (q *Queries) SaveAndPublishPost(ctx context.Context, arg SaveAndPublishPostParams) (SaveAndPublishPostRow, error) {
+	row := q.db.QueryRowContext(ctx, saveAndPublishPost,
+		arg.ID,
+		arg.Title,
+		arg.Slug,
+		arg.Content,
+		arg.Excerpt,
+		arg.Author,
+		arg.Status,
+		pq.Array(arg.Tags),
+	)
+	var i SaveAndPublishPostRow
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Slug,
+		&i.Content,
+		&i.Excerpt,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		pq.Array(&i.Tags),
+	)
+	return i, err
+}
+
+const unpublishPost = `-- name: UnpublishPost :exec
+UPDATE posts
+SET status = "draft", updated_at = CURRENT_TIMESTAMP, published_at = NULL
+WHERE id = $1
+`
+
+func (q *Queries) UnpublishPost(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, unpublishPost, id)
+	return err
+}
+
 const updatePost = `-- name: UpdatePost :one
 UPDATE posts
-SET title = $2, slug = $3, content = $4, excerpt = $5, author = $5, status = $6, tags = $7, updated_at = CURRENT_TIMESTAMP
+SET title = $2, slug = $3, content = $4, excerpt = $5, author = $6, status = $7, tags = $8, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1
 RETURNING id, title, slug, content, excerpt, status, created_at, updated_at, tags
 `
@@ -241,6 +356,7 @@ type UpdatePostParams struct {
 	Slug    string
 	Content string
 	Excerpt sql.NullString
+	Author  sql.NullString
 	Status  sql.NullString
 	Tags    []string
 }
@@ -264,6 +380,7 @@ func (q *Queries) UpdatePost(ctx context.Context, arg UpdatePostParams) (UpdateP
 		arg.Slug,
 		arg.Content,
 		arg.Excerpt,
+		arg.Author,
 		arg.Status,
 		pq.Array(arg.Tags),
 	)
@@ -282,25 +399,9 @@ func (q *Queries) UpdatePost(ctx context.Context, arg UpdatePostParams) (UpdateP
 	return i, err
 }
 
-const updatePostStatus = `-- name: UpdatePostStatus :exec
-UPDATE posts
-SET status = $2
-WHERE id = $1
-`
-
-type UpdatePostStatusParams struct {
-	ID     uuid.UUID
-	Status sql.NullString
-}
-
-func (q *Queries) UpdatePostStatus(ctx context.Context, arg UpdatePostStatusParams) error {
-	_, err := q.db.ExecContext(ctx, updatePostStatus, arg.ID, arg.Status)
-	return err
-}
-
 const updatePostThumbnail = `-- name: UpdatePostThumbnail :exec
 UPDATE posts
-SET thumbnail = $2
+SET thumbnail = $2, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1
 `
 

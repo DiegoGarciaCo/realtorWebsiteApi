@@ -48,3 +48,24 @@ func cleanupS3(cfg *apiCfg, ctx context.Context, keys []string) {
 		}
 	}
 }
+
+func deleteFromS3(cfg *apiCfg, ctx context.Context, imageURL string) error {
+	baseURL := "https://" + cfg.S3Bucket + ".s3." + cfg.S3Region + ".amazonaws.com/"
+	key := strings.TrimPrefix(imageURL, baseURL)
+	
+	if key == imageURL {
+		log.Printf("Invalid S3 URL format: %s", imageURL)
+		return fmt.Errorf("Invalid S3 URL format: %s", imageURL)
+	}
+
+	_, err := cfg.S3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(cfg.S3Bucket),
+		Key:    aws.String(key),
+	})
+
+	if err != nil {
+		log.Printf("Failed to delete %s: %s", key, err)
+	}
+
+	return nil
+}
