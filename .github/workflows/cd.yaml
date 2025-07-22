@@ -11,17 +11,17 @@ jobs:
       - name: checkout code
         uses: actions/checkout@v4
 
-      - name: set up node.js
-        uses: actions/setup-node@v4
+      - name: set up Go
+        uses: actions/setup-go@v5
         with:
-          node-version: "18"
-          cache: "npm"
+          go-version: "1.23.0"
+          cache: true
 
-      - name: install deps
-        run: npm ci
+      - name: install dependencies
+        run: go mod download
 
       - name: build app
-        run: npm run build
+        run: CGO_ENABLED=0 GOOS=linux go build -o realtorbackend .
 
       - name: build image
         run: docker build -t dgarcia51/realtorbackend:${{ github.sha }} .
