@@ -1,0 +1,24 @@
+services:
+  app:
+    image: dgarcia51/realtorbackend:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=${PORT}
+      - DATABASE_URL=${DATABASE_URL}
+      - TOKEN_SECRET=${TOKEN_SECRET}
+      - APP_PASSWORD=${APP_PASSWORD}
+      - FUB_API_KEY=${FUB_API_KEY}
+      - X_SYSTEM=${X_SYSTEM}
+      - X_SYSTEM_KEY=${X_SYSTEM_KEY}
+      - S3_REGION=${S3_REGION}
+      - S3_BUCKET=${S3_BUCKET}
+      - AWS_ACCESS_KEY=${AWS_ACCESS_KEY}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - BREVO_API_KEY=${BREVO_API_KEY}
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback

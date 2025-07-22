@@ -9,28 +9,19 @@ import (
 	"time"
 
 	"github.com/DiegoGarciaCo/websitesAPI/internal/database"
+	"github.com/DiegoGarciaCo/websitesAPI/internal/handlers"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/joho/godotenv"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 )
 
-type apiCfg struct {
-	port        string
-	secret      string
-	DB          *database.Queries
-	SQLDB       *sql.DB
-	appPassword string
-	FUBKey      string
-	System      string
-	SystemKey   string
-	S3Client    *s3.Client
-	S3Bucket    string
-	S3Region    string
-	Env         string
-}
-
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 	port := os.Getenv("PORT")
 	if port == "" {
 		log.Fatal("PORT is not set")
@@ -85,33 +76,20 @@ func main() {
 	}
 	dbQueries := database.New(db)
 
-	apiCfg := apiCfg{
-		port:        ":" + port,
-		secret:      secret,
-		DB:          dbQueries,
-		SQLDB:       db,
-		appPassword: appPassword,
-		FUBKey:      FUBKey,
-		System:      system,
-		SystemKey:   systemKey,
-		S3Client:    client,
-		S3Bucket:    s3Bucket,
-		S3Region:    s3Region,
-		Env:         env,
-	}
+	apiCfg := handlers.NewConfig(port, secret, appPassword, FUBKey, system, systemKey, s3Bucket, s3Region, env, dbQueries, db, client)
 
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins: []string{"https://soldbyghost.com", "http://localhost:3000"},
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders: []string{"Content-Type", "Authorization", "X-CSRF-TOKEN"},
+		AllowedOrigins:   []string{"https://soldbyghost.com", "http://localhost:3000"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization", "X-CSRF-TOKEN"},
 		AllowCredentials: true,
 	})
 
 	mux := http.NewServeMux()
 
 	// Lead Submission
-	mux.HandleFunc("POST /api/submit/form", apiCfg.submitForm)
-	mux.HandleFunc("POST /api/calculator", apiCfg.calculateMortgage)
+	mux.HandleFunc("POST /api/submit/form", apiCfg.SubmitForm)
+	mux.HandleFunc("POST /api/calculator", apiCfg.CalculateMortgage)
 	mux.HandleFunc("POST /api/estimate", apiCfg.Estimate)
 
 	// Auth
@@ -121,27 +99,27 @@ func main() {
 	mux.HandleFunc("POST /api/auth/validate", apiCfg.ValidateJWT)
 
 	// Posts
-	mux.HandleFunc("GET /api/posts/{slug}", apiCfg.postBySlug)
+	mux.HandleFunc("GET /api/posts/{slug}", apiCfg.PostBySlug)
 	mux.HandleFunc("GET /api/posts/published", apiCfg.PublishedPost)
-	mux.HandleFunc("GET /api/posts", apiCfg.AuthMiddleware(apiCfg.allPosts))
-	mux.HandleFunc("POST /api/posts/draft", apiCfg.AuthMiddleware(apiCfg.createDraftPost))
-	mux.HandleFunc("POST /api/posts/publish/{id}", apiCfg.AuthMiddleware(apiCfg.PublishPost))
-	mux.HandleFunc("PUT /api/posts/publish/{id}", apiCfg.AuthMiddleware(apiCfg.SaveAndPublishPost))
-	mux.HandleFunc("POST /api/posts/publish", apiCfg.AuthMiddleware(apiCfg.PublishPost))
-	mux.HandleFunc("POST /api/posts/thumbnail/{id}", apiCfg.AuthMiddleware(apiCfg.uploadThumnail))
-	mux.HandleFunc("PUT /api/posts/thumbnail/{id}", apiCfg.AuthMiddleware(apiCfg.UpdateThumbnail))
-	mux.HandleFunc("PUT /api/posts", apiCfg.AuthMiddleware(apiCfg.updatePost))
-	mux.HandleFunc("DELETE /api/posts/delete/{id}", apiCfg.AuthMiddleware(apiCfg.deletePost))
+	mux.HandleFunc("GET /api/posts", apiCfg.AllPosts)
+	mux.HandleFunc("POST /api/posts/draft", apiCfg.CreateDraftPost)
+	mux.HandleFunc("POST /api/posts/publish/{id}", apiCfg.PublishPost)
+	mux.HandleFunc("PUT /api/posts/publish/{id}", apiCfg.SaveAndPublishPost)
+	mux.HandleFunc("POST /api/posts/publish", apiCfg.PublishPost)
+	mux.HandleFunc("POST /api/posts/thumbnail/{id}", apiCfg.UploadThumnail)
+	mux.HandleFunc("PUT /api/posts/thumbnail/{id}", apiCfg.UpdateThumbnail)
+	mux.HandleFunc("PUT /api/posts", apiCfg.UpdatePost)
+	mux.HandleFunc("DELETE /api/posts/delete/{id}", apiCfg.DeletePost)
 
-	handler := LoggerMiddleware(corsHandler.Handler(RecoveryMiddleware(mux)))
+	handler := handlers.LoggerMiddleware(corsHandler.Handler(handlers.RecoveryMiddleware(mux)))
 
 	srv := &http.Server{
-		Addr:              apiCfg.port,
+		Addr:              ":" + apiCfg.Port,
 		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
-	log.Print("Listening on port " + apiCfg.port + " ...")
+	log.Print("Listening on port " + apiCfg.Port + "...")
 	if err := srv.ListenAndServe(); err != nil {
 		logrus.WithError(err).Fatal("Server failed to start")
 	}

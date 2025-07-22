@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"encoding/json"
@@ -39,7 +39,7 @@ func (cfg *apiCfg) Login(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	token, err := auth.MakeJWT(user.ID, cfg.secret, time.Hour)
+	token, err := auth.MakeJWT(user.ID, cfg.Secret, time.Hour)
 	if err != nil {
 		log.Printf("Error making token: %s", err)
 		respondWithError(w, http.StatusInternalServerError, "Could not generate token", err)
@@ -108,7 +108,7 @@ func (cfg *apiCfg) Login(w http.ResponseWriter, req *http.Request) {
 		Expires:  time.Now().Add(time.Hour),
 		Path:     "/",
 		SameSite: http.SameSiteLaxMode,
-		Domain: domain,
+		Domain:   domain,
 		HttpOnly: true,
 		Secure:   secure,
 	})
@@ -118,7 +118,7 @@ func (cfg *apiCfg) Login(w http.ResponseWriter, req *http.Request) {
 		Expires:  time.Now().Add(30 * 24 * time.Hour),
 		Path:     "/",
 		SameSite: http.SameSiteLaxMode,
-		Domain: domain,
+		Domain:   domain,
 		HttpOnly: true,
 		Secure:   secure,
 	})
@@ -127,8 +127,8 @@ func (cfg *apiCfg) Login(w http.ResponseWriter, req *http.Request) {
 		Value:    csrfToken,
 		Expires:  time.Now().Add(30 * 24 * time.Hour),
 		Path:     "/",
-		SameSite: http.SameSiteLaxMode,		
-		Domain: domain,
+		SameSite: http.SameSiteLaxMode,
+		Domain:   domain,
 		HttpOnly: false,
 		Secure:   secure,
 	})
@@ -173,7 +173,7 @@ func (cfg *apiCfg) Logout(w http.ResponseWriter, req *http.Request) {
 	var secure bool
 	if cfg.Env == "dev" {
 		domain = "soldbbyghost.com"
-	} 
+	}
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "token",
@@ -181,7 +181,7 @@ func (cfg *apiCfg) Logout(w http.ResponseWriter, req *http.Request) {
 		MaxAge:   -1,
 		Path:     "/",
 		SameSite: http.SameSiteLaxMode,
-		Domain: domain,
+		Domain:   domain,
 		HttpOnly: true,
 		Secure:   secure,
 	})
@@ -191,7 +191,7 @@ func (cfg *apiCfg) Logout(w http.ResponseWriter, req *http.Request) {
 		MaxAge:   -1,
 		Path:     "/",
 		SameSite: http.SameSiteLaxMode,
-		Domain: domain,
+		Domain:   domain,
 		HttpOnly: true,
 		Secure:   secure,
 	})
@@ -201,7 +201,7 @@ func (cfg *apiCfg) Logout(w http.ResponseWriter, req *http.Request) {
 		MaxAge:   -1,
 		Path:     "/",
 		SameSite: http.SameSiteLaxMode,
-		Domain: domain,
+		Domain:   domain,
 		HttpOnly: false,
 		Secure:   secure,
 	})
@@ -215,7 +215,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 	if cfg.Env == "dev" {
 		domain = "soldbbyghost.com"
 		secure = false
-	} 
+	}
 	refreshToken, err := req.Cookie("refreshToken")
 	if err != nil {
 		http.SetCookie(w, &http.Cookie{
@@ -224,7 +224,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain: domain,
+			Domain:   domain,
 			HttpOnly: true,
 			Secure:   secure,
 		})
@@ -234,7 +234,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain: domain,
+			Domain:   domain,
 			HttpOnly: true,
 			Secure:   secure,
 		})
@@ -244,7 +244,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain: domain,
+			Domain:   domain,
 			HttpOnly: false,
 			Secure:   secure,
 		})
@@ -260,7 +260,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain: domain,
+			Domain:   domain,
 			HttpOnly: true,
 			Secure:   secure,
 		})
@@ -270,7 +270,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain: domain,
+			Domain:   domain,
 			HttpOnly: true,
 			Secure:   secure,
 		})
@@ -280,7 +280,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain: domain,
+			Domain:   domain,
 			HttpOnly: false,
 			Secure:   secure,
 		})
@@ -295,7 +295,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain: domain, 
+			Domain:   domain,
 			HttpOnly: true,
 			Secure:   secure,
 		})
@@ -305,7 +305,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain: domain,
+			Domain:   domain,
 			HttpOnly: true,
 			Secure:   secure,
 		})
@@ -315,7 +315,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain: domain,
+			Domain:   domain,
 			HttpOnly: false,
 			Secure:   secure,
 		})
@@ -330,7 +330,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain: domain, 
+			Domain:   domain,
 			HttpOnly: true,
 			Secure:   secure,
 		})
@@ -340,7 +340,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain: domain,
+			Domain:   domain,
 			HttpOnly: true,
 			Secure:   secure,
 		})
@@ -350,7 +350,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain: domain,
+			Domain:   domain,
 			HttpOnly: false,
 			Secure:   secure,
 		})
@@ -366,7 +366,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain: domain,  
+			Domain:   domain,
 			HttpOnly: true,
 			Secure:   secure,
 		})
@@ -376,7 +376,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain: domain,
+			Domain:   domain,
 			HttpOnly: true,
 			Secure:   secure,
 		})
@@ -386,7 +386,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain: domain,
+			Domain:   domain,
 			HttpOnly: false,
 			Secure:   secure,
 		})
@@ -394,7 +394,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	JwtToken, err := auth.MakeJWT(user.ID, cfg.secret, time.Hour)
+	JwtToken, err := auth.MakeJWT(user.ID, cfg.Secret, time.Hour)
 	if err != nil {
 		http.SetCookie(w, &http.Cookie{
 			Name:     "refreshToken",
@@ -402,7 +402,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain: domain,  
+			Domain:   domain,
 			HttpOnly: true,
 			Secure:   secure,
 		})
@@ -412,7 +412,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain: domain,
+			Domain:   domain,
 			HttpOnly: true,
 			Secure:   secure,
 		})
@@ -422,7 +422,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain: domain,
+			Domain:   domain,
 			HttpOnly: false,
 			Secure:   secure,
 		})
@@ -438,7 +438,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain: domain,  
+			Domain:   domain,
 			HttpOnly: true,
 			Secure:   secure,
 		})
@@ -448,7 +448,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain: domain,
+			Domain:   domain,
 			HttpOnly: true,
 			Secure:   secure,
 		})
@@ -458,7 +458,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain: domain,
+			Domain:   domain,
 			HttpOnly: false,
 			Secure:   secure,
 		})
@@ -474,7 +474,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain: domain,
+			Domain:   domain,
 			HttpOnly: true,
 			Secure:   secure,
 		})
@@ -484,7 +484,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain: domain,
+			Domain:   domain,
 			HttpOnly: true,
 			Secure:   secure,
 		})
@@ -494,7 +494,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 			MaxAge:   -1,
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
-			Domain: domain,
+			Domain:   domain,
 			HttpOnly: false,
 			Secure:   secure,
 		})
@@ -508,7 +508,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 		Expires:  time.Now().Add(time.Hour),
 		Path:     "/",
 		SameSite: http.SameSiteLaxMode,
-		Domain: domain,  
+		Domain:   domain,
 		HttpOnly: true,
 		Secure:   secure,
 	})
@@ -516,7 +516,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 		Name:     "refreshToken",
 		Value:    newRefreshToken,
 		Expires:  time.Now().Add(30 * 24 * time.Hour),
-		Domain: domain,
+		Domain:   domain,
 		Path:     "/",
 		SameSite: http.SameSiteLaxMode,
 		HttpOnly: true,
@@ -526,7 +526,7 @@ func (cfg *apiCfg) RefreshToken(w http.ResponseWriter, req *http.Request) {
 		Name:     "csrfToken",
 		Value:    csrfToken,
 		Expires:  time.Now().Add(30 * 24 * time.Hour),
-		Domain: domain,
+		Domain:   domain,
 		Path:     "/",
 		SameSite: http.SameSiteLaxMode,
 		HttpOnly: false,
@@ -543,7 +543,7 @@ func (cfg *apiCfg) ValidateJWT(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	userID, err := auth.ValidateJWT(token.Value, cfg.secret)
+	userID, err := auth.ValidateJWT(token.Value, cfg.Secret)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "invalid token", err)
 		return

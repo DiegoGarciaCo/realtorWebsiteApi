@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"context"
@@ -88,28 +88,28 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 
 // Authentication middleware with role support
 func (cfg *apiCfg) AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
-    return func(w http.ResponseWriter, req *http.Request) {
-        token, err := req.Cookie("token")
-        if err != nil {
-            log.Print("Error getting token: ", err)
-            respondWithError(w, http.StatusUnauthorized, "Invalid token", err)
-            return
-        }
+	return func(w http.ResponseWriter, req *http.Request) {
+		token, err := req.Cookie("token")
+		if err != nil {
+			log.Print("Error getting token: ", err)
+			respondWithError(w, http.StatusUnauthorized, "Invalid token", err)
+			return
+		}
 
-        userID, err := auth.ValidateJWT(token.Value, cfg.secret)
-        if err != nil {
-            log.Print("Error validating token: ", err)
-            respondWithError(w, http.StatusUnauthorized, "Invalid token", err)
-            return
-        }
+		userID, err := auth.ValidateJWT(token.Value, cfg.Secret)
+		if err != nil {
+			log.Print("Error validating token: ", err)
+			respondWithError(w, http.StatusUnauthorized, "Invalid token", err)
+			return
+		}
 
-        _, err = cfg.DB.GetUserByID(req.Context(), userID)
-        if err != nil {
-            log.Print("Error getting user: ", err)
-            respondWithError(w, http.StatusUnauthorized, "User not found", err)
-            return
-        }
+		_, err = cfg.DB.GetUserByID(req.Context(), userID)
+		if err != nil {
+			log.Print("Error getting user: ", err)
+			respondWithError(w, http.StatusUnauthorized, "User not found", err)
+			return
+		}
 
-        next(w, req)
-    }
+		next(w, req)
+	}
 }
