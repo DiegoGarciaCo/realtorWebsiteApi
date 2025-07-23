@@ -5,6 +5,7 @@ services:
       - "8080:8080"
     environment:
       - PORT=${PORT}
+      - ENV=${ENV}
       - DATABASE_URL=${DATABASE_URL}
       - TOKEN_SECRET=${TOKEN_SECRET}
       - APP_PASSWORD=${APP_PASSWORD}
