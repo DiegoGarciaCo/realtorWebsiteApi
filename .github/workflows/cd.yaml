@@ -53,7 +53,6 @@ jobs:
       - name: Create .env file
         run: |
           echo PORT=${{ secrets.PORT }} >> .env
-          echo ENV=${{ secrets.ENV }} >> .env
           echo DATABASE_URL=${{ secrets.DATABASE_URL }} >> .env
           echo TOKEN_SECRET=${{ secrets.TOKEN_SECRET }} >> .env
           echo APP_PASSWORD=${{ secrets.APP_PASSWORD }} >> .env
