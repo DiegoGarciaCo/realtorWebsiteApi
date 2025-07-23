@@ -21,9 +21,10 @@ type data struct {
 	Insurance    float64
 }
 
+
 func (cfg *apiCfg) CalculateMortgage(w http.ResponseWriter, req *http.Request) {
 	type reqParams struct {
-		Price       string `json:"Price"`
+		Price       string `json:"price"`
 		Interest    string `json:"interest"`
 		Years       string `json:"years"`
 		DownPayment string `json:"downPayment"`
@@ -34,6 +35,7 @@ func (cfg *apiCfg) CalculateMortgage(w http.ResponseWriter, req *http.Request) {
 		Subscribed  bool   `json:"subscribed"`
 	}
 
+	// Follow up Boss API payload structures
 	type Email struct {
 		Value string `json:"value"`
 		Type  string `json:"type"`
@@ -147,13 +149,11 @@ func (cfg *apiCfg) CalculateMortgage(w http.ResponseWriter, req *http.Request) {
 			monthlyPMI = 0.0
 		}
 
-		interestFloat, err := strconv.ParseFloat(formData.Interest, 64)
+		interest, err := strconv.ParseFloat(formData.Interest, 64)
 		if err != nil {
 			log.Printf("Error converting Interest to float64: %v", err)
 			return
 		}
-
-		interest := interestFloat / 100
 
 		years, err := strconv.Atoi(formData.Years)
 		if err != nil {
@@ -162,7 +162,7 @@ func (cfg *apiCfg) CalculateMortgage(w http.ResponseWriter, req *http.Request) {
 		}
 		payment := CalculateMortgagePayment(float64(price)-float64(downPayment), interest, years)
 		totalPayment := payment + monthlyPMI + (tax / 12) + (2119 / 12)
-		if err = SendEmail(data{
+		if err = cfg.SendMortgageCalculation(data{
 			Price:        price,
 			Interest:     interest * 100,
 			Years:        years,
@@ -173,6 +173,7 @@ func (cfg *apiCfg) CalculateMortgage(w http.ResponseWriter, req *http.Request) {
 			Taxes:        tax / 12,
 			Insurance:    2119 / 12,
 		}, formData.Email, cfg.AppPassword); err != nil {
+			log.Printf("Error sending mortgage calculation email: %v", err)
 			return
 		}
 	}()

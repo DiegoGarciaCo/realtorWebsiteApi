@@ -58,6 +58,10 @@ func main() {
 	if s3Bucket == "" {
 		log.Fatal("S3_BUCKET is not set")
 	}
+	brevoAPIKey := os.Getenv("BREVO_API_KEY")
+	if brevoAPIKey == "" {
+		log.Fatal("BREVO_API_KEY is not set")
+	}
 
 	awsCfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(s3Region))
 	if err != nil {
@@ -71,7 +75,7 @@ func main() {
 	}
 	dbQueries := database.New(db)
 
-	apiCfg := handlers.NewConfig(port, secret, appPassword, FUBKey, system, systemKey, s3Bucket, s3Region, env, dbQueries, db, client)
+	apiCfg := handlers.NewConfig(port, secret, appPassword, FUBKey, system, systemKey, s3Bucket, s3Region, brevoAPIKey, env, dbQueries, db, client)
 
 	corsHandler := cors.New(cors.Options{
 		AllowedOrigins:   []string{"https://soldbyghost.com", "http://localhost:3000"},

@@ -1,16 +1,14 @@
 package handlers
 
 import (
-	"bytes"
 	"context"
+	"io"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"gopkg.in/gomail.v2"
-	"html/template"
 	"log"
 	"math"
 	"net/http"
@@ -115,7 +113,7 @@ func deleteFromS3(cfg *apiCfg, ctx context.Context, imageURL string) error {
 
 func CalculateMortgagePayment(P float64, annualRate float64, loanTerm int) float64 {
 	// Convert annual interest rate to monthly
-	monthlyRate := annualRate / 12
+	monthlyRate := (annualRate / 100) / 12
 
 	// Total number of payments (months)
 	n := loanTerm * 12
@@ -128,34 +126,94 @@ func CalculateMortgagePayment(P float64, annualRate float64, loanTerm int) float
 
 	// Mortgage payment formula
 	m := P * (monthlyRate * math.Pow(1+monthlyRate, float64(n))) / (math.Pow(1+monthlyRate, float64(n)) - 1)
-	return m
+	return math.Round(m*100) / 100
 }
 
-func SendEmail(data data, to, password string) error {
-	// Creat email body from template
-	var emailBody bytes.Buffer
-	t, err := template.ParseFiles("emailBody.html")
+func (cfg *apiCfg) SendMortgageCalculation(data data, to, password string) error {
+	// Request structures
+	type To struct {
+		Email string `json:"email"`
+	}
+	type bcc struct {
+		Email string `json:"email"`
+		Name  string `json:"name"`
+	}
+	type params struct {
+		Price        int     `json:"Price"`
+		Interest     float64 `json:"Interest"`
+		Years        int     `json:"Years"`
+		DownPayment  float64 `json:"DownPayment"`
+		Payment      float64 `json:"Payment"`
+		TotalPayment float64 `json:"TotalPayment"`
+		MonthlyPMI   float64 `json:"MonthlyPMI"`
+		Taxes        float64 `json:"Taxes"`
+		Insurance    float64 `json:"Insurance"`
+	}
+	type brevoRequest struct {
+		To        []To        `json:"to"`
+		Bcc       []bcc         `json:"bcc"`
+		TemplateID int          `json:"templateId"`
+		Params    params       `json:"params"`
+	}
+
+	// Prepare the request 
+	req := brevoRequest{
+		To: []To{
+			{
+				Email: to,
+			},
+		},
+		Bcc:       []bcc{
+			{
+				Email: "diegogarcia51916@gmail.com",
+				Name:  "Diego Garcia",
+			},
+		},
+		TemplateID: 1,
+		Params: params{
+			Price:        data.Price,
+			Interest:     data.Interest,
+			Years:        data.Years,
+			DownPayment:  data.DownPayment,
+			Payment:      data.Payment,
+			TotalPayment: data.TotalPayment,
+			MonthlyPMI:   data.MonthlyPMI,
+			Taxes:        data.Taxes,
+			Insurance:    data.Insurance,
+		},
+	}
+
+	// Marshal the request to JSON
+	jsonData, err := json.Marshal(req)
 	if err != nil {
-		return err
+		log.Printf("Error marshalling JSON for email request: %v", err)
+		return fmt.Errorf("failed to marshal email request: %w", err)
 	}
-	err = t.Execute(&emailBody, data)
+
+	// Send the request to the email service
+	client := &http.Client{}
+	reqEmail, err := http.NewRequest("POST", "https://api.brevo.com/v3/smtp/email", strings.NewReader(string(jsonData)))
 	if err != nil {
-		log.Print(err)
+		log.Printf("Error creating HTTP request for email: %v", err)
+		return fmt.Errorf("failed to create HTTP request for email: %w", err)
 	}
+	reqEmail.Header.Set("Content-Type", "application/json")
+	reqEmail.Header.Set("api-key", cfg.BrevoAPIKey)
 
-	// create email
-	m := gomail.NewMessage()
-	m.SetHeader("From", "diego@stonebrgrealy.com")
-	m.SetHeader("To", to)
-	m.SetHeader("Subject", "Your Mortgage Calculation")
-	m.SetBody("text/html", emailBody.String())
-
-	d := gomail.NewDialer("smtp.gmail.com", 587, "diego@stonebrgrealty.com", password)
-
-	// Send the email
-	if err := d.DialAndSend(m); err != nil {
-		return err
+	
+	resp, err := client.Do(reqEmail)
+	if err != nil {
+		log.Printf("Error sending email request: %v", err)
+		return fmt.Errorf("failed to send email request: %w", err)
 	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Email request failed with status: %s", resp.Status)
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("email request failed with status %s: %s", resp.Status, body)
+	}
+	log.Println("Mortgage calculation email sent successfully")
 
 	return nil
 }

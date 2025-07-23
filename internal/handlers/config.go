@@ -18,10 +18,11 @@ type apiCfg struct {
 	S3Client    *s3.Client
 	S3Bucket    string
 	S3Region    string
+	BrevoAPIKey string
 	Env         string
 }
 
-func NewConfig(port, secret, appPassword, fubkey, system, systemKey, s3Bucket, s3Region, env string, db *database.Queries, sqlDB *sql.DB, s3Client *s3.Client) *apiCfg {
+func NewConfig(port, secret, appPassword, fubkey, system, systemKey, s3Bucket, s3Region, brevoAPIKey, env string, db *database.Queries, sqlDB *sql.DB, s3Client *s3.Client) *apiCfg {
 	return &apiCfg{
 		Port:        port,
 		Secret:      secret,
@@ -34,6 +35,7 @@ func NewConfig(port, secret, appPassword, fubkey, system, systemKey, s3Bucket, s
 		S3Client:    s3Client,
 		S3Bucket:    s3Bucket,
 		S3Region:    s3Region,
+		BrevoAPIKey: brevoAPIKey,
 		Env:         env,
 	}
 }
