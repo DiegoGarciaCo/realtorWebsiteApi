@@ -118,6 +118,31 @@ func (cfg *apiCfg) CalculateMortgage(w http.ResponseWriter, req *http.Request) {
 	}
 	defer resp.Body.Close()
 
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		log.Printf("Error response from Follow Up Boss: %s", resp.Status)
+		respondWithError(w, http.StatusInternalServerError, "Could not send request", err)
+		return
+	}
+
+	// Create contact in Brevo
+	contact := contact{
+		Email: formData.Email,
+		Attributes: attributes{
+			FirstName: formData.FirstName,
+			LastName:  formData.LastName,
+			Sms:       formData.Number,
+		},
+		ListIDs: []int64{3},
+	}
+
+	err = cfg.CreateContact(contact)
+	if err != nil {
+		log.Printf("Error creating contact in Brevo: %s", err)
+		respondWithError(w, http.StatusInternalServerError, "Could not create contact in Brevo", err)
+		return
+	}
+
 	// Send Email Response
 	go func() {
 		price, err := strconv.Atoi(formData.Price)
@@ -285,10 +310,29 @@ func (cfg *apiCfg) Estimate(w http.ResponseWriter, req *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusAccepted && resp.StatusCode != http.StatusNoContent {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		respondWithError(w, http.StatusBadRequest, "Invalid request payload", err)
 		return
 	}
+
+	// Create contact in Brevo
+	contact := contact{
+		Email: formData.Email,
+		Attributes: attributes{
+			FirstName: fisrtName,
+			LastName:  lastName,
+			Sms:       formData.Number,
+		},
+		ListIDs: []int64{4},
+	}
+
+	err = cfg.CreateContact(contact)
+	if err != nil {
+		log.Printf("Error creating contact in Brevo: %s", err)
+		respondWithError(w, http.StatusInternalServerError, "Could not create contact in Brevo", err)
+		return
+	}
+
 
 	respondWithJSON(w, http.StatusOK, nil)
 }
@@ -384,6 +428,23 @@ func (cfg *apiCfg) SubmitForm(w http.ResponseWriter, req *http.Request) {
 
 	if resp.StatusCode != http.StatusOK {
 		respondWithError(w, http.StatusInternalServerError, "Could not send request", err)
+		return
+	}
+
+	// Create contact in Brevo
+	contact := contact{
+		Email: formData.Email,
+		Attributes: attributes{
+			FirstName: formData.FirstName,
+			LastName:  formData.LastName,
+			Sms:       formData.Number,
+		},
+		ListIDs: []int64{6},
+	}
+	err = cfg.CreateContact(contact)
+	if err != nil {
+		log.Printf("Error creating contact in Brevo: %s", err)
+		respondWithError(w, http.StatusInternalServerError, "Could not create contact in Brevo", err)
 		return
 	}
 
