@@ -24,13 +24,41 @@ func (cfg *apiCfg) PublishedPost(w http.ResponseWriter, req *http.Request) {
 }
 
 func (cfg *apiCfg) AllPosts(w http.ResponseWriter, req *http.Request) {
+	type resParams struct {
+		ID      string   `json:"ID"`
+		Title   string   `json:"Title"`
+		Slug    string   `json:"Slug"`
+		Excerpt sql.NullString`json:"Excerpt"`
+		Author  sql.NullString `json:"Author"`
+		PublishedAt sql.NullTime`json:"PublishedAt"`
+		Status sql.NullString `json:"Status"`
+		Thumbnail sql.NullString `json:"Thumbnail"`
+		CreatedAt sql.NullTime `json:"CreatedAt"`
+		Tags    []string `json:"Tags"`
+	}
 	posts, err := cfg.DB.ListAllPosts(req.Context())
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Something went wrong", err)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, posts)
+	res := make([]resParams, len(posts))
+	for i, post := range posts {
+		res[i] = resParams{
+			ID:          post.ID.String(),
+			Title:       post.Title,
+			Slug:        post.Slug,
+			Excerpt:     post.Excerpt,
+			Author:      post.Author,
+			PublishedAt: post.PublishedAt,
+			Status:      post.Status,
+			Thumbnail:   post.Thumbnail,
+			CreatedAt:   post.CreatedAt,
+			Tags:        post.Tags,
+		}
+	}
+
+	respondWithJSON(w, http.StatusOK, res)
 }
 
 func (cfg *apiCfg) CreateDraftPost(w http.ResponseWriter, req *http.Request) {
