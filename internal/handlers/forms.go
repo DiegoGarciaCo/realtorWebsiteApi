@@ -379,6 +379,8 @@ func (cfg *apiCfg) SubmitForm(w http.ResponseWriter, req *http.Request) {
 	}
 	url := "https://api.followupboss.com/v1/events"
 
+	log.Printf("Received form data: %+v", formData)
+
 	payload := reqPayload{
 		Source:  cfg.System,
 		Type:    "General Inquiry",
@@ -406,6 +408,8 @@ func (cfg *apiCfg) SubmitForm(w http.ResponseWriter, req *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "Could not marshal JSON", err)
 		return
 	}
+
+	log.Printf("Payload: %s", payloadJSON)
 
 	r, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadJSON))
 	if err != nil {
@@ -441,6 +445,9 @@ func (cfg *apiCfg) SubmitForm(w http.ResponseWriter, req *http.Request) {
 		},
 		ListIDs: []int64{6},
 	}
+
+	log.Printf("Creating contact in Brevo: %+v", contact)
+
 	err = cfg.CreateContact(contact)
 	if err != nil {
 		log.Printf("Error creating contact in Brevo: %s", err)

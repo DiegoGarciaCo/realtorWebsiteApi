@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"io"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -46,6 +47,11 @@ func (cfg *apiCfg) CreateContact(contact contact) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
+		// Read the response body for more details
+		body, _ := io.ReadAll(resp.Body)
+		if body != nil {
+			return fmt.Errorf("failed to create contact: %s, response: %s", resp.Status, string(body))
+		}
 		return fmt.Errorf("failed to create contact: %s", resp.Status)
 	}
 
