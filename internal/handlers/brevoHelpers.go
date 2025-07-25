@@ -84,6 +84,7 @@ func (cfg *apiCfg) CreateContact(contact contact) error {
 
 	contact.ListIDs = append(contact.ListIDs, listIDs...)
 	contact.ListIDs = dedupe(contact.ListIDs)
+	contact.Attributes.Sms = "+1" + contact.Attributes.Sms // Ensure SMS is in the correct format
 
 	// Create or update the contact
 	// Marshal the contact to JSON
