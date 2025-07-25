@@ -78,7 +78,7 @@ func main() {
 	apiCfg := handlers.NewConfig(port, secret, appPassword, FUBKey, system, systemKey, s3Bucket, s3Region, brevoAPIKey, env, dbQueries, db, client)
 
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins:   []string{"https://soldbyghost.com", "http://localhost:3000"},
+		AllowedOrigins:   []string{"https://soldbyghost.com", "https://admin.soldbyghost.com"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization", "X-CSRF-TOKEN"},
 		AllowCredentials: true,
