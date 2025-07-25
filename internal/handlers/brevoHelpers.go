@@ -108,7 +108,7 @@ func (cfg *apiCfg) CreateContact(contact contact) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusCreated {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		// Read the response body for more details
 		body, _ := io.ReadAll(resp.Body)
 		if body != nil {

@@ -382,8 +382,6 @@ func (cfg *apiCfg) SubmitForm(w http.ResponseWriter, req *http.Request) {
 	}
 	url := "https://api.followupboss.com/v1/events"
 
-	log.Printf("Received form data: %+v", formData)
-
 	payload := reqPayload{
 		Source:  cfg.System,
 		Type:    "General Inquiry",
@@ -412,7 +410,6 @@ func (cfg *apiCfg) SubmitForm(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	log.Printf("Payload: %s", payloadJSON)
 
 	r, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadJSON))
 	if err != nil {
@@ -438,14 +435,6 @@ func (cfg *apiCfg) SubmitForm(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Log the response status and body
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("Error reading response body: %s", err)
-	}
-
-	log.Printf("Response body: %s", body)
-	log.Printf("Follow Up Boss response status: %s", resp.Status)
 
 	// Create contact in Brevo
 	contact := contact{
@@ -459,7 +448,6 @@ func (cfg *apiCfg) SubmitForm(w http.ResponseWriter, req *http.Request) {
 		UpdateEnabled: true,
 	}
 
-	log.Printf("Creating contact in Brevo: %+v", contact)
 
 	err = cfg.CreateContact(contact)
 	if err != nil {
