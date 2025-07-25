@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"io"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -134,6 +135,7 @@ func (cfg *apiCfg) CalculateMortgage(w http.ResponseWriter, req *http.Request) {
 			Sms:       formData.Number,
 		},
 		ListIDs: []int64{3},
+		UpdateEnabled: true,
 	}
 
 	err = cfg.CreateContact(contact)
@@ -324,6 +326,7 @@ func (cfg *apiCfg) Estimate(w http.ResponseWriter, req *http.Request) {
 			Sms:       formData.Number,
 		},
 		ListIDs: []int64{4},
+		UpdateEnabled: true,
 	}
 
 	err = cfg.CreateContact(contact)
@@ -435,6 +438,15 @@ func (cfg *apiCfg) SubmitForm(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// Log the response status and body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Error reading response body: %s", err)
+	}
+
+	log.Printf("Response body: %s", body)
+	log.Printf("Follow Up Boss response status: %s", resp.Status)
+
 	// Create contact in Brevo
 	contact := contact{
 		Email: formData.Email,
@@ -444,6 +456,7 @@ func (cfg *apiCfg) SubmitForm(w http.ResponseWriter, req *http.Request) {
 			Sms:       formData.Number,
 		},
 		ListIDs: []int64{6},
+		UpdateEnabled: true,
 	}
 
 	log.Printf("Creating contact in Brevo: %+v", contact)

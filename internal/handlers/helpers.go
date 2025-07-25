@@ -217,3 +217,17 @@ func (cfg *apiCfg) SendMortgageCalculation(data data, to, password string) error
 
 	return nil
 }
+
+func dedupe(list []int64) []int64 {
+	seen := make(map[int64]struct{})
+	var result []int64
+
+	for _, id := range list {
+		if _, exists := seen[id]; !exists {
+			seen[id] = struct{}{}
+			result = append(result, id)
+		}
+	}
+
+	return result
+}
