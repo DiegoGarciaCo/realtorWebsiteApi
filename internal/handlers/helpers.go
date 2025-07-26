@@ -208,7 +208,7 @@ func (cfg *apiCfg) SendMortgageCalculation(data data, to, password string) error
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		log.Printf("Email request failed with status: %s", resp.Status)
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("email request failed with status %s: %s", resp.Status, body)
