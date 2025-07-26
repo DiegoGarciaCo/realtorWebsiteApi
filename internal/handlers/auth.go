@@ -96,41 +96,37 @@ func (cfg *apiCfg) Login(w http.ResponseWriter, req *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "Could not commit transaction", err)
 		return
 	}
-	domain := "localhost"
-	var secure bool
-	if cfg.Env != "dev" {
-		domain = "soldbyghost.com"
-	}
+	domain := ".soldbyghost.com"
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "token",
 		Value:    token,
 		Expires:  time.Now().Add(time.Hour),
 		Path:     "/",
-		SameSite: http.SameSiteLaxMode,
+		SameSite: http.SameSiteNoneMode,
 		Domain:   domain,
 		HttpOnly: true,
-		Secure:   secure,
+		Secure:   true,
 	})
 	http.SetCookie(w, &http.Cookie{
 		Name:     "refreshToken",
 		Value:    refreshToken,
 		Expires:  time.Now().Add(30 * 24 * time.Hour),
 		Path:     "/",
-		SameSite: http.SameSiteLaxMode,
+		SameSite: http.SameSiteNoneMode,
 		Domain:   domain,
 		HttpOnly: true,
-		Secure:   secure,
+		Secure:   true,
 	})
 	http.SetCookie(w, &http.Cookie{
 		Name:     "csrfToken",
 		Value:    csrfToken,
 		Expires:  time.Now().Add(30 * 24 * time.Hour),
 		Path:     "/",
-		SameSite: http.SameSiteLaxMode,
+		SameSite: http.SameSiteNoneMode,
 		Domain:   domain,
 		HttpOnly: false,
-		Secure:   secure,
+		Secure:   true,
 	})
 	log.Print("User logged in")
 
