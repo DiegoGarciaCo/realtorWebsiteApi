@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"net/url"
 	"encoding/json"
 	"fmt"
 	"github.com/DiegoGarciaCo/websitesAPI/internal/database"
@@ -451,4 +452,54 @@ func (cfg *apiCfg) UploadThumnail(w http.ResponseWriter, req *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusNoContent, nil)
+}
+
+func (cfg *apiCfg) GetPostsByCategory(w http.ResponseWriter, req *http.Request) {
+	type resParams struct {
+		ID          string         `json:"ID"`
+		Title       string         `json:"Title"`
+		Slug        string         `json:"Slug"`
+		Excerpt     sql.NullString `json:"Excerpt"`
+		Author      sql.NullString `json:"Author"`
+		PublishedAt sql.NullTime   `json:"PublishedAt"`
+		Thumbnail   sql.NullString `json:"Thumbnail"`
+		CreatedAt   sql.NullTime   `json:"CreatedAt"`
+		Tags        []string       `json:"Tags"`
+	}
+
+	encodedCategory := req.PathValue("category")
+	if encodedCategory == "" {
+		respondWithError(w, http.StatusBadRequest, "Missing category", nil)
+		return
+	}
+
+	category := url.QueryEscape(encodedCategory)
+
+	posts, err := cfg.DB.GetPostByCategory(req.Context(), []string{category})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Something went wrong", err)
+		return
+	}
+
+	if len(posts) == 0 {
+		respondWithJSON(w, http.StatusNotFound, "No posts found for this category")
+		return
+	}
+
+	res := make([]resParams, len(posts))
+	for i, post := range posts {
+		res[i] = resParams{
+			ID:          post.ID.String(),
+			Title:       post.Title,
+			Slug:        post.Slug,
+			Excerpt:     post.Excerpt,
+			Author:      post.Author,
+			PublishedAt: post.PublishedAt,
+			Thumbnail:   post.Thumbnail,
+			CreatedAt:   post.CreatedAt,
+			Tags:        post.Tags,
+		}
+	}
+
+	respondWithJSON(w, http.StatusOK, res)
 }

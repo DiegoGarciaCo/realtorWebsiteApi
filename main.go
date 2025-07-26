@@ -100,6 +100,7 @@ func main() {
 	// Posts
 	mux.HandleFunc("GET /api/posts/{slug}", apiCfg.PostBySlug)
 	mux.HandleFunc("GET /api/posts/published", apiCfg.PublishedPost)
+	mux.HandleFunc("GET /api/posts/category/{category}", apiCfg.GetPostsByCategory)
 	mux.HandleFunc("GET /api/posts", apiCfg.AuthMiddleware(apiCfg.AllPosts))
 	mux.HandleFunc("POST /api/posts/draft", apiCfg.AuthMiddleware(apiCfg.CreateDraftPost))
 	mux.HandleFunc("POST /api/posts/publish/{id}", apiCfg.AuthMiddleware(apiCfg.PublishPost))

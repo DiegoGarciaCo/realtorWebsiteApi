@@ -85,6 +85,58 @@ func (q *Queries) DeletePost(ctx context.Context, id uuid.UUID) (DeletePostRow, 
 	return i, err
 }
 
+const getPostByCategory = `-- name: GetPostByCategory :many
+SELECT id, title, slug, excerpt, created_at, tags, thumbnail, published_at, author
+FROM posts
+WHERE status = 'published' AND tags @> $1
+ORDER BY published_at DESC
+`
+
+type GetPostByCategoryRow struct {
+	ID          uuid.UUID
+	Title       string
+	Slug        string
+	Excerpt     sql.NullString
+	CreatedAt   sql.NullTime
+	Tags        []string
+	Thumbnail   sql.NullString
+	PublishedAt sql.NullTime
+	Author      sql.NullString
+}
+
+func (q *Queries) GetPostByCategory(ctx context.Context, tags []string) ([]GetPostByCategoryRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPostByCategory, pq.Array(tags))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPostByCategoryRow
+	for rows.Next() {
+		var i GetPostByCategoryRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Slug,
+			&i.Excerpt,
+			&i.CreatedAt,
+			pq.Array(&i.Tags),
+			&i.Thumbnail,
+			&i.PublishedAt,
+			&i.Author,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPostBySlug = `-- name: GetPostBySlug :one
 SELECT id, title, slug, content, excerpt, status, author, published_at, thumbnail, created_at, updated_at, tags
 FROM posts

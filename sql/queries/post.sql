@@ -55,3 +55,8 @@ UPDATE posts
 SET status = "draft", updated_at = CURRENT_TIMESTAMP, published_at = NULL
 WHERE id = $1;
 
+-- name: GetPostByCategory :many
+SELECT id, title, slug, excerpt, created_at, tags, thumbnail, published_at, author
+FROM posts
+WHERE status = 'published' AND tags @> $1
+ORDER BY published_at DESC;
