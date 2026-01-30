@@ -124,7 +124,7 @@ func (cfg *apiCfg) CalculateMortgage(w http.ResponseWriter, req *http.Request) {
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		log.Printf("Error response from CRM: %s", resp.Status)
-		respondWithError(w, http.StatusInternalServerError, "Could not send request", err)
+		respondWithError(w, resp.StatusCode, "Did not get successful response", err)
 		return
 	}
 
