@@ -20,7 +20,8 @@ import (
 func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
-		log.Fatal("PORT is not set")
+		log.Println("PORT is not set, defaulting to 8080")
+		port = "8080"
 	}
 	env := os.Getenv("ENV")
 	if env == "" {
@@ -28,47 +29,47 @@ func main() {
 	}
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		log.Fatal("DATABASE_URL is not set")
+		log.Println("DATABASE_URL is not set")
 	}
 	secret := os.Getenv("TOKEN_SECRET")
 	if secret == "" {
-		log.Fatal("TOKEN_SECRET is not set")
+		log.Println("TOKEN_SECRET is not set")
 	}
 
 	s3Region := os.Getenv("S3_REGION")
 	if s3Region == "" {
-		log.Fatal("S3_REGION is not set")
+		log.Println("S3_REGION is not set")
 	}
 	s3Bucket := os.Getenv("S3_BUCKET")
 	if s3Bucket == "" {
-		log.Fatal("S3_BUCKET is not set")
+		log.Println("S3_BUCKET is not set")
 	}
 	betterAuthSecret := os.Getenv("BETTER_AUTH_SECRET")
 	if betterAuthSecret == "" {
-		log.Fatal("BETTER_AUTH_SECRET is not set")
+		log.Println("BETTER_AUTH_SECRET is not set")
 	}
 	postmarkServerToken := os.Getenv("POSTMARK_SERVER_TOKEN")
 	if postmarkServerToken == "" {
-		log.Fatal("POSTMARK_SERVER_TOKEN is not set")
+		log.Println("POSTMARK_SERVER_TOKEN is not set")
 	}
 	fromEmail := os.Getenv("FROM_EMAIL_ADDRESS")
 	if fromEmail == "" {
-		log.Fatal("FROM_EMAIL_ADDRESS is not set")
+		log.Println("FROM_EMAIL_ADDRESS is not set")
 	}
 	crmAPIKey := os.Getenv("CRM_API_KEY")
 	if crmAPIKey == "" {
-		log.Fatal("CRM_API_KEY is not set")
+		log.Println("CRM_API_KEY is not set")
 	}
 
 	awsCfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(s3Region))
 	if err != nil {
-		log.Fatal(err)
+		log.Println("Unable to load AWS SDK config:", err)
 	}
 	client := s3.NewFromConfig(awsCfg)
 
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
-		log.Fatal("Unable to connect to database ", err)
+		log.Println("Unable to connect to database:", err)
 	}
 	dbQueries := database.New(db)
 
