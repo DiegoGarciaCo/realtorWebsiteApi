@@ -39,7 +39,7 @@ jobs:
           tags: dgarcia51/realtorbackend:${{ github.sha }}, dgarcia51/realtorbackend:latest
           secrets: |
             "PORT=${{ secrets.PORT }}"
-            "DATABASE_URL=${{ secrets.DATABASE_URL }}"
+            "DATABASE_URL='${{ secrets.DATABASE_URL }}'"
             "TOKEN_SECRET=${{ secrets.TOKEN_SECRET }}"
             "S3_REGION=${{ secrets.S3_REGION }}"
             "S3_BUCKET=${{ secrets.S3_BUCKET }}"
@@ -63,7 +63,7 @@ jobs:
       - name: Create .env file
         run: |
           echo PORT=${{ secrets.PORT }} >> .env
-          echo DATABASE_URL=${{ secrets.DATABASE_URL }} >> .env
+          echo DATABASE_URL="${{ secrets.DATABASE_URL }}" >> .env
           echo TOKEN_SECRET=${{ secrets.TOKEN_SECRET }} >> .env
           echo S3_REGION=${{ secrets.S3_REGION }} >> .env
           echo S3_BUCKET=${{ secrets.S3_BUCKET }} >> .env
