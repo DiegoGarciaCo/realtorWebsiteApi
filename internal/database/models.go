@@ -11,10 +11,20 @@ import (
 	"github.com/google/uuid"
 )
 
-type Csft struct {
-	Token     string
-	UserID    uuid.UUID
-	CreatedAt time.Time
+type Account struct {
+	ID                    uuid.UUID
+	AccountId             string
+	ProviderId            string
+	UserId                uuid.UUID
+	AccessToken           sql.NullString
+	RefreshToken          sql.NullString
+	IdToken               sql.NullString
+	AccessTokenExpiresAt  sql.NullTime
+	RefreshTokenExpiresAt sql.NullTime
+	Scope                 sql.NullString
+	Password              sql.NullString
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
 }
 
 type Post struct {
@@ -32,22 +42,32 @@ type Post struct {
 	Tags        []string
 }
 
-type RefreshToken struct {
+type Session struct {
+	ID        uuid.UUID
+	ExpiresAt time.Time
 	Token     string
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	UserID    uuid.UUID
-	ExpiresAt time.Time
-	RevokedAt sql.NullTime
+	IpAddress sql.NullString
+	UserAgent sql.NullString
+	UserId    uuid.UUID
 }
 
 type User struct {
-	ID           uuid.UUID
-	Email        string
-	Username     string
-	FirstName    sql.NullString
-	LastName     sql.NullString
-	PasswordHash sql.NullString
-	CreatedAt    sql.NullTime
-	UpdatedAt    sql.NullTime
+	ID            uuid.UUID
+	Name          string
+	Email         string
+	EmailVerified bool
+	Image         sql.NullString
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
+type Verification struct {
+	ID         uuid.UUID
+	Identifier string
+	Value      string
+	ExpiresAt  time.Time
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }

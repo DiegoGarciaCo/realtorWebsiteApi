@@ -32,6 +32,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.17 // indirect
 	github.com/aws/smithy-go v1.22.2 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
+	github.com/keighl/postmark v0.0.0-20190821160221-28358b1a94e3 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 )

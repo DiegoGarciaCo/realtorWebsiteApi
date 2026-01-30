@@ -12,6 +12,7 @@ import (
 	"github.com/DiegoGarciaCo/websitesAPI/internal/handlers"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/keighl/postmark"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 )
@@ -33,22 +34,6 @@ func main() {
 	if secret == "" {
 		log.Fatal("TOKEN_SECRET is not set")
 	}
-	appPassword := os.Getenv("APP_PASSWORD")
-	if appPassword == "" {
-		log.Fatal("APP_PASSWORD is not set")
-	}
-	FUBKey := os.Getenv("FUB_API_KEY")
-	if FUBKey == "" {
-		log.Fatal("FUB_API_KEY is not set")
-	}
-	system := os.Getenv("X_SYSTEM")
-	if system == "" {
-		log.Fatal("X_SYSTEM is not set")
-	}
-	systemKey := os.Getenv("X_SYSTEM_KEY")
-	if systemKey == "" {
-		log.Fatal("X_SYSTEM_KEY is not set")
-	}
 
 	s3Region := os.Getenv("S3_REGION")
 	if s3Region == "" {
@@ -58,9 +43,21 @@ func main() {
 	if s3Bucket == "" {
 		log.Fatal("S3_BUCKET is not set")
 	}
-	brevoAPIKey := os.Getenv("BREVO_API_KEY")
-	if brevoAPIKey == "" {
-		log.Fatal("BREVO_API_KEY is not set")
+	betterAuthSecret := os.Getenv("BETTER_AUTH_SECRET")
+	if betterAuthSecret == "" {
+		log.Fatal("BETTER_AUTH_SECRET is not set")
+	}
+	postmarkServerToken := os.Getenv("POSTMARK_SERVER_TOKEN")
+	if postmarkServerToken == "" {
+		log.Fatal("POSTMARK_SERVER_TOKEN is not set")
+	}
+	fromEmail := os.Getenv("FROM_EMAIL_ADDRESS")
+	if fromEmail == "" {
+		log.Fatal("FROM_EMAIL_ADDRESS is not set")
+	}
+	crmAPIKey := os.Getenv("CRM_API_KEY")
+	if crmAPIKey == "" {
+		log.Fatal("CRM_API_KEY is not set")
 	}
 
 	awsCfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(s3Region))
@@ -75,7 +72,20 @@ func main() {
 	}
 	dbQueries := database.New(db)
 
-	apiCfg := handlers.NewConfig(port, secret, appPassword, FUBKey, system, systemKey, s3Bucket, s3Region, brevoAPIKey, env, dbQueries, db, client)
+	// ------------------------------------------------
+	// Initialize Postmark client
+	// ------------------------------------------------
+
+	postmarkClient := postmark.Client{
+		ServerToken: postmarkServerToken,
+		BaseURL:     "https://api.postmarkapp.com",
+		HTTPClient: &http.Client{
+			Timeout: 10 * time.Second,
+		},
+	}
+	EmailSecret := []byte(secret)
+
+	apiCfg := handlers.NewConfig(port, secret, s3Bucket, s3Region, env, dbQueries, db, client, betterAuthSecret, &postmarkClient, EmailSecret, fromEmail, crmAPIKey)
 
 	corsHandler := cors.New(cors.Options{
 		AllowedOrigins:   []string{"https://soldbyghost.com", "https://admin.soldbyghost.com"},
@@ -90,12 +100,6 @@ func main() {
 	mux.HandleFunc("POST /api/submit/form", apiCfg.SubmitForm)
 	mux.HandleFunc("POST /api/calculator", apiCfg.CalculateMortgage)
 	mux.HandleFunc("POST /api/estimate", apiCfg.Estimate)
-
-	// Auth
-	mux.HandleFunc("POST /api/auth/login", apiCfg.Login)
-	mux.HandleFunc("POST /api/auth/logout", apiCfg.Logout)
-	mux.HandleFunc("POST /api/auth/refresh", apiCfg.RefreshToken)
-	mux.HandleFunc("POST /api/auth/validate", apiCfg.ValidateJWT)
 
 	// Posts
 	mux.HandleFunc("GET /api/posts/{slug}", apiCfg.PostBySlug)

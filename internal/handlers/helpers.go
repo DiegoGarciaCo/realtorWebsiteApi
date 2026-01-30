@@ -2,17 +2,18 @@ package handlers
 
 import (
 	"context"
-	"io"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"log"
 	"math"
 	"net/http"
 	"strings"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/keighl/postmark"
 )
 
 func respondWithError(w http.ResponseWriter, code int, msg string, err error) {
@@ -83,7 +84,6 @@ func cleanupS3(cfg *apiCfg, ctx context.Context, keys []string) {
 			Bucket: aws.String(cfg.S3Bucket),
 			Key:    aws.String(key),
 		})
-
 		if err != nil {
 			log.Printf("Failed to delete %s: %s", key, err)
 		}
@@ -103,7 +103,6 @@ func deleteFromS3(cfg *apiCfg, ctx context.Context, imageURL string) error {
 		Bucket: aws.String(cfg.S3Bucket),
 		Key:    aws.String(key),
 	})
-
 	if err != nil {
 		log.Printf("Failed to delete %s: %s", key, err)
 	}
@@ -129,105 +128,28 @@ func CalculateMortgagePayment(P float64, annualRate float64, loanTerm int) float
 	return math.Round(m*100) / 100
 }
 
-func (cfg *apiCfg) SendMortgageCalculation(data data, to, password string) error {
-	// Request structures
-	type To struct {
-		Email string `json:"email"`
-	}
-	type bcc struct {
-		Email string `json:"email"`
-		Name  string `json:"name"`
-	}
-	type params struct {
-		Price        int     `json:"Price"`
-		Interest     float64 `json:"Interest"`
-		Years        int     `json:"Years"`
-		DownPayment  float64 `json:"DownPayment"`
-		Payment      float64 `json:"Payment"`
-		TotalPayment float64 `json:"TotalPayment"`
-		MonthlyPMI   float64 `json:"MonthlyPMI"`
-		Taxes        float64 `json:"Taxes"`
-		Insurance    float64 `json:"Insurance"`
-	}
-	type brevoRequest struct {
-		To        []To        `json:"to"`
-		Bcc       []bcc         `json:"bcc"`
-		TemplateID int          `json:"templateId"`
-		Params    params       `json:"params"`
-	}
-
-	// Prepare the request 
-	req := brevoRequest{
-		To: []To{
-			{
-				Email: to,
-			},
-		},
-		Bcc:       []bcc{
-			{
-				Email: "diegogarcia51916@gmail.com",
-				Name:  "Diego Garcia",
-			},
-		},
-		TemplateID: 1,
-		Params: params{
-			Price:        data.Price,
-			Interest:     data.Interest,
-			Years:        data.Years,
-			DownPayment:  data.DownPayment,
-			Payment:      data.Payment,
-			TotalPayment: data.TotalPayment,
-			MonthlyPMI:   data.MonthlyPMI,
-			Taxes:        data.Taxes,
-			Insurance:    data.Insurance,
-		},
-	}
-
-	// Marshal the request to JSON
-	jsonData, err := json.Marshal(req)
+func (cfg *apiCfg) SendMortgageCalculation(data data, to string) error {
+	_, err := cfg.postmarkClient.SendEmail(postmark.Email{
+		From:    cfg.FromEmail,
+		To:      to,
+		Subject: "Your Mortgage Calculation Results",
+		HtmlBody: fmt.Sprintf(`
+			<h1>Mortgage Calculation Results</h1>
+			<p>Here are the details of your mortgage calculation:</p>
+			<ul>
+				<li><strong>Purchase Price:</strong> $%d</li>
+				<li><strong>Down Payment:</strong> $%.2f</li>
+				<li><strong>Annual Interest Rate:</strong> %.2f%%</li>
+				<li><strong>Loan Term:</strong> %d years</li>
+				<li><strong>Principal and Interest Payment:</strong> $%.2f</li>
+				<li><strong>Total Monthly Payment:</strong> $%.2f</li>
+			</ul>
+			<p>Thank you for using our mortgage calculator!</p>
+		`, data.Price, data.DownPayment, data.Interest, data.Years, data.Payment, data.TotalPayment),
+	})
 	if err != nil {
-		log.Printf("Error marshalling JSON for email request: %v", err)
-		return fmt.Errorf("failed to marshal email request: %w", err)
+		log.Printf("Failed to send email to %s: %s", to, err)
+		return err
 	}
-
-	// Send the request to the email service
-	client := &http.Client{}
-	reqEmail, err := http.NewRequest("POST", "https://api.brevo.com/v3/smtp/email", strings.NewReader(string(jsonData)))
-	if err != nil {
-		log.Printf("Error creating HTTP request for email: %v", err)
-		return fmt.Errorf("failed to create HTTP request for email: %w", err)
-	}
-	reqEmail.Header.Set("Content-Type", "application/json")
-	reqEmail.Header.Set("api-key", cfg.BrevoAPIKey)
-
-	
-	resp, err := client.Do(reqEmail)
-	if err != nil {
-		log.Printf("Error sending email request: %v", err)
-		return fmt.Errorf("failed to send email request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		log.Printf("Email request failed with status: %s", resp.Status)
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("email request failed with status %s: %s", resp.Status, body)
-	}
-	log.Println("Mortgage calculation email sent successfully")
-
 	return nil
-}
-
-func dedupe(list []int64) []int64 {
-	seen := make(map[int64]struct{})
-	var result []int64
-
-	for _, id := range list {
-		if _, exists := seen[id]; !exists {
-			seen[id] = struct{}{}
-			result = append(result, id)
-		}
-	}
-
-	return result
 }

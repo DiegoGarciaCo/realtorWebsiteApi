@@ -21,7 +21,6 @@ type data struct {
 	Insurance    float64
 }
 
-
 func (cfg *apiCfg) CalculateMortgage(w http.ResponseWriter, req *http.Request) {
 	type reqParams struct {
 		Price       string `json:"price"`
@@ -34,27 +33,25 @@ func (cfg *apiCfg) CalculateMortgage(w http.ResponseWriter, req *http.Request) {
 		Number      string `json:"number"`
 		Subscribed  bool   `json:"subscribed"`
 	}
-
-	// Follow up Boss API payload structures
-	type Email struct {
-		Value string `json:"value"`
-		Type  string `json:"type"`
-	}
-
-	type Phone struct {
-		Value string `json:"value"`
-		Type  string `json:"type"`
-	}
-	type Person struct {
-		FirstName string  `json:"firstName"`
-		LastName  string  `json:"lastName"`
-		Emails    []Email `json:"emails"`
-		Phones    []Phone `json:"phones"`
-	}
-	type reqPayload struct {
+	type requestContact struct {
+		FirstName    string `json:"first_name"`
+		LastName     string `json:"last_name"`
+		PhoneNumbers []struct {
+			Number    string `json:"number"`
+			Type      string `json:"type"`
+			IsPrimary bool   `json:"is_primary"`
+		} `json:"phone_numbers"`
+		Emails []struct {
+			Email     string `json:"email"`
+			Type      string `json:"type"`
+			IsPrimary bool   `json:"is_primary"`
+		} `json:"emails"`
 		Source string `json:"source"`
-		Type   string `json:"type"`
-		Person Person `json:"person"`
+		Status string `json:"status"`
+	}
+	type requestNote struct {
+		ContactID string `json:"contact_id"`
+		Note      string `json:"note"`
 	}
 
 	// Decode request
@@ -67,27 +64,36 @@ func (cfg *apiCfg) CalculateMortgage(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	url := "https://api.followupboss.com/v1/events"
+	url := "https://server.soldbyghost.com/api/contacts"
+	noteURL := "https://server.soldbyghost.com/api/notes"
 
-	payload := reqPayload{
-		Source: cfg.System,
-		Type:   "Property Inquiry",
-		Person: Person{
-			FirstName: formData.FirstName,
-			LastName:  formData.LastName,
-			Emails: []Email{
-				{
-					Value: formData.Email,
-					Type:  "Personal",
-				},
-			},
-			Phones: []Phone{
-				{
-					Value: formData.Number,
-					Type:  "Mobile",
-				},
+	payload := requestContact{
+		FirstName: formData.FirstName,
+		LastName:  formData.LastName,
+		PhoneNumbers: []struct {
+			Number    string `json:"number"`
+			Type      string `json:"type"`
+			IsPrimary bool   `json:"is_primary"`
+		}{
+			{
+				Number:    formData.Number,
+				Type:      "mobile",
+				IsPrimary: true,
 			},
 		},
+		Emails: []struct {
+			Email     string `json:"email"`
+			Type      string `json:"type"`
+			IsPrimary bool   `json:"is_primary"`
+		}{
+			{
+				Email:     formData.Email,
+				Type:      "personal",
+				IsPrimary: true,
+			},
+		},
+		Source: "Website",
+		Status: "Lead",
 	}
 
 	payloadJSON, err := json.Marshal(payload)
@@ -105,9 +111,7 @@ func (cfg *apiCfg) CalculateMortgage(w http.ResponseWriter, req *http.Request) {
 	}
 
 	r.Header.Set("Content-Type", "application/json")
-	r.Header.Set("X-System", cfg.System)
-	r.Header.Set("X-System-Key", cfg.SystemKey)
-	r.SetBasicAuth(cfg.FUBKey, "")
+	r.Header.Set("X-API-Key", cfg.CRMAPIKey)
 
 	client := &http.Client{}
 	resp, err := client.Do(r)
@@ -118,29 +122,63 @@ func (cfg *apiCfg) CalculateMortgage(w http.ResponseWriter, req *http.Request) {
 	}
 	defer resp.Body.Close()
 
-
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		log.Printf("Error response from Follow Up Boss: %s", resp.Status)
+		log.Printf("Error response from CRM: %s", resp.Status)
 		respondWithError(w, http.StatusInternalServerError, "Could not send request", err)
 		return
 	}
 
-	// Create contact in Brevo
-	contact := contact{
-		Email: formData.Email,
-		Attributes: attributes{
-			FirstName: formData.FirstName,
-			LastName:  formData.LastName,
-			Sms:       formData.Number,
-		},
-		ListIDs: []int64{3},
-		UpdateEnabled: true,
+	// Extract contact ID from response
+	var respData struct {
+		ID string `json:"ID"`
+	}
+	err = json.NewDecoder(resp.Body).Decode(&respData)
+	if err != nil {
+		log.Printf("Error decoding response: %s", err)
+		respondWithError(w, http.StatusInternalServerError, "Could not decode response", err)
+		return
 	}
 
-	err = cfg.CreateContact(contact)
+	contactID := respData.ID
+
+	// Create Note for Contact
+	notePayload := requestNote{
+		ContactID: contactID,
+		Note: "Requested Mortgage Calculation with the following details:\n" +
+			"Price: $" + formData.Price + "\n" +
+			"Interest Rate: " + formData.Interest + "%\n" +
+			"Loan Term: " + formData.Years + " years\n" +
+			"Down Payment: " + formData.DownPayment + "%",
+	}
+
+	notePayloadJSON, err := json.Marshal(notePayload)
 	if err != nil {
-		log.Printf("Error creating contact in Brevo: %s", err)
-		respondWithError(w, http.StatusInternalServerError, "Could not create contact in Brevo", err)
+		log.Printf("Error marshalling note JSON: %s", err)
+		respondWithError(w, http.StatusInternalServerError, "Could not marshal note JSON", err)
+		return
+	}
+
+	noteReq, err := http.NewRequest("POST", noteURL, bytes.NewBuffer(notePayloadJSON))
+	if err != nil {
+		log.Printf("Error creating note request: %s", err)
+		respondWithError(w, http.StatusInternalServerError, "Could not create note request", err)
+		return
+	}
+
+	noteReq.Header.Set("Content-Type", "application/json")
+	noteReq.Header.Set("X-API-Key", cfg.CRMAPIKey)
+
+	noteResp, err := client.Do(noteReq)
+	if err != nil {
+		log.Printf("Error sending note request: %s", err)
+		respondWithError(w, http.StatusInternalServerError, "Could not send note request", err)
+		return
+	}
+	defer noteResp.Body.Close()
+
+	if noteResp.StatusCode < 200 || noteResp.StatusCode >= 300 {
+		log.Printf("Error response from CRM when creating note: %s", noteResp.Status)
+		respondWithError(w, http.StatusInternalServerError, "Could not create note", err)
 		return
 	}
 
@@ -198,7 +236,7 @@ func (cfg *apiCfg) CalculateMortgage(w http.ResponseWriter, req *http.Request) {
 			MonthlyPMI:   monthlyPMI,
 			Taxes:        tax / 12,
 			Insurance:    2119 / 12,
-		}, formData.Email, cfg.AppPassword); err != nil {
+		}, formData.Email); err != nil {
 			log.Printf("Error sending mortgage calculation email: %v", err)
 			return
 		}
@@ -216,32 +254,28 @@ func (cfg *apiCfg) Estimate(w http.ResponseWriter, req *http.Request) {
 		Number  string `json:"number"`
 	}
 
-	type Email struct {
-		Value string `json:"value"`
-		Type  string `json:"type"`
+	type requestContact struct {
+		FirstName    string `json:"first_name"`
+		LastName     string `json:"last_name"`
+		PhoneNumbers []struct {
+			Number    string `json:"number"`
+			Type      string `json:"type"`
+			IsPrimary bool   `json:"is_primary"`
+		} `json:"phone_numbers"`
+		Emails []struct {
+			Email     string `json:"email"`
+			Type      string `json:"type"`
+			IsPrimary bool   `json:"is_primary"`
+		} `json:"emails"`
+		Source  string `json:"source"`
+		Status  string `json:"status"`
+		Address string `json:"address"`
+		City    string `json:"city"`
+		State   string `json:"state"`
 	}
-
-	type Phone struct {
-		Value string `json:"value"`
-		Type  string `json:"type"`
-	}
-	type Address struct {
-		Type   string `json:"type"`
-		Street string `json:"street"`
-		City   string `json:"city"`
-		State  string `json:"state"`
-	}
-	type Person struct {
-		FirstName string    `json:"firstName"`
-		LastName  string    `json:"lastName"`
-		Emails    []Email   `json:"emails"`
-		Phones    []Phone   `json:"phones"`
-		Addresses []Address `json:"addresses"`
-	}
-	type reqPayload struct {
-		Source string `json:"source"`
-		Type   string `json:"type"`
-		Person Person `json:"person"`
+	type requestNote struct {
+		ContactID string `json:"contact_id"`
+		Note      string `json:"note"`
 	}
 
 	var formData reqParams
@@ -255,35 +289,39 @@ func (cfg *apiCfg) Estimate(w http.ResponseWriter, req *http.Request) {
 	fisrtName := strings.Split(formData.Name, " ")[0]
 	lastName := strings.Split(formData.Name, " ")[1]
 
-	url := "https://api.followupboss.com/v1/events"
+	url := "https://server.soldbyghost.com/api/contacts"
+	noteURL := "https://server.soldbyghost.com/api/notes"
 
-	payload := reqPayload{
-		Source: "Realtor Website",
-		Type:   "Seller Inquiry",
-		Person: Person{
-			FirstName: fisrtName,
-			LastName:  lastName,
-			Emails: []Email{
-				{
-					Value: formData.Email,
-					Type:  "personal",
-				},
-			},
-			Phones: []Phone{
-				{
-					Value: formData.Number,
-					Type:  "personal",
-				},
-			},
-			Addresses: []Address{
-				{
-					Type:   "home",
-					Street: formData.Address,
-					City:   formData.City,
-					State:  formData.State,
-				},
+	payload := requestContact{
+		FirstName: fisrtName,
+		LastName:  lastName,
+		PhoneNumbers: []struct {
+			Number    string `json:"number"`
+			Type      string `json:"type"`
+			IsPrimary bool   `json:"is_primary"`
+		}{
+			{
+				Number:    formData.Number,
+				Type:      "mobile",
+				IsPrimary: true,
 			},
 		},
+		Emails: []struct {
+			Email     string `json:"email"`
+			Type      string `json:"type"`
+			IsPrimary bool   `json:"is_primary"`
+		}{
+			{
+				Email:     formData.Email,
+				Type:      "personal",
+				IsPrimary: true,
+			},
+		},
+		Source:  "Website",
+		Status:  "Lead",
+		Address: formData.Address,
+		City:    formData.City,
+		State:   formData.State,
 	}
 
 	jsonPayload, err := json.Marshal(payload)
@@ -299,9 +337,7 @@ func (cfg *apiCfg) Estimate(w http.ResponseWriter, req *http.Request) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-System", cfg.System)
-	req.Header.Set("X-System-Key", cfg.SystemKey)
-	req.SetBasicAuth(cfg.FUBKey, "")
+	req.Header.Set("X-API-Key", cfg.CRMAPIKey)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -316,25 +352,50 @@ func (cfg *apiCfg) Estimate(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Create contact in Brevo
-	contact := contact{
-		Email: formData.Email,
-		Attributes: attributes{
-			FirstName: fisrtName,
-			LastName:  lastName,
-			Sms:       formData.Number,
-		},
-		ListIDs: []int64{4},
-		UpdateEnabled: true,
+	// Extract contact ID from response
+	var respData struct {
+		ID string `json:"ID"`
 	}
-
-	err = cfg.CreateContact(contact)
+	err = json.NewDecoder(resp.Body).Decode(&respData)
 	if err != nil {
-		log.Printf("Error creating contact in Brevo: %s", err)
-		respondWithError(w, http.StatusInternalServerError, "Could not create contact in Brevo", err)
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload", err)
 		return
 	}
 
+	contactID := respData.ID
+
+	// Create Note for Contact
+	notePayload := requestNote{
+		ContactID: contactID,
+		Note:      "Requested Property Estimate on the website.",
+	}
+
+	notePayloadJSON, err := json.Marshal(notePayload)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload", err)
+		return
+	}
+
+	noteReq, err := http.NewRequest("POST", noteURL, bytes.NewBuffer(notePayloadJSON))
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload", err)
+		return
+	}
+
+	noteReq.Header.Set("Content-Type", "application/json")
+	noteReq.Header.Set("X-API-Key", cfg.CRMAPIKey)
+
+	noteResp, err := client.Do(noteReq)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload", err)
+		return
+	}
+	defer noteResp.Body.Close()
+
+	if noteResp.StatusCode < 200 || noteResp.StatusCode >= 300 {
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload", err)
+		return
+	}
 
 	respondWithJSON(w, http.StatusOK, nil)
 }
@@ -348,28 +409,25 @@ func (cfg *apiCfg) SubmitForm(w http.ResponseWriter, req *http.Request) {
 		Message    string `json:"message"`
 		Subscribed bool   `json:"subscribed"`
 	}
-
-	// Person represents the lead’s details within the payload
-	type Email struct {
-		Value string `json:"value"`
-		Type  string `json:"type"`
+	type requestContact struct {
+		FirstName    string `json:"first_name"`
+		LastName     string `json:"last_name"`
+		PhoneNumbers []struct {
+			Number    string `json:"number"`
+			Type      string `json:"type"`
+			IsPrimary bool   `json:"is_primary"`
+		} `json:"phone_numbers"`
+		Emails []struct {
+			Email     string `json:"email"`
+			Type      string `json:"type"`
+			IsPrimary bool   `json:"is_primary"`
+		} `json:"emails"`
+		Source string `json:"source"`
+		Status string `json:"status"`
 	}
-
-	type Phone struct {
-		Value string `json:"value"`
-		Type  string `json:"type"`
-	}
-	type Person struct {
-		FirstName string  `json:"firstName"`
-		LastName  string  `json:"lastName"`
-		Emails    []Email `json:"emails"`
-		Phones    []Phone `json:"phones"`
-	}
-	type reqPayload struct {
-		Source  string `json:"source"`
-		Type    string `json:"type"`
-		Message string `json:"message"`
-		Person  Person `json:"person"`
+	type requestNote struct {
+		ContactID string `json:"contact_id"`
+		Note      string `json:"note"`
 	}
 
 	formData := reqParams{}
@@ -379,28 +437,36 @@ func (cfg *apiCfg) SubmitForm(w http.ResponseWriter, req *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "Could not decode request", err)
 		return
 	}
-	url := "https://api.followupboss.com/v1/events"
+	url := "https://server.soldbyghost.com/api/contacts"
+	notesURL := "https://server.soldbyghost.com/api/notes"
 
-	payload := reqPayload{
-		Source:  cfg.System,
-		Type:    "General Inquiry",
-		Message: formData.Message,
-		Person: Person{
-			FirstName: formData.FirstName,
-			LastName:  formData.LastName,
-			Emails: []Email{
-				{
-					Value: formData.Email,
-					Type:  "Personal",
-				},
-			},
-			Phones: []Phone{
-				{
-					Value: formData.Number,
-					Type:  "Mobile",
-				},
+	payload := requestContact{
+		FirstName: formData.FirstName,
+		LastName:  formData.LastName,
+		PhoneNumbers: []struct {
+			Number    string `json:"number"`
+			Type      string `json:"type"`
+			IsPrimary bool   `json:"is_primary"`
+		}{
+			{
+				Number:    formData.Number,
+				Type:      "mobile",
+				IsPrimary: true,
 			},
 		},
+		Emails: []struct {
+			Email     string `json:"email"`
+			Type      string `json:"type"`
+			IsPrimary bool   `json:"is_primary"`
+		}{
+			{
+				Email:     formData.Email,
+				Type:      "personal",
+				IsPrimary: true,
+			},
+		},
+		Source: "Website",
+		Status: "Lead",
 	}
 
 	payloadJSON, err := json.Marshal(payload)
@@ -409,7 +475,6 @@ func (cfg *apiCfg) SubmitForm(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-
 	r, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadJSON))
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Could not create request", err)
@@ -417,9 +482,7 @@ func (cfg *apiCfg) SubmitForm(w http.ResponseWriter, req *http.Request) {
 	}
 
 	r.Header.Set("Content-Type", "application/json")
-	r.Header.Set("X-System", cfg.System)
-	r.Header.Set("X-System-Key", cfg.SystemKey)
-	r.SetBasicAuth(cfg.FUBKey, "")
+	r.Header.Set("X-API-Key", cfg.CRMAPIKey)
 
 	client := &http.Client{}
 	resp, err := client.Do(r)
@@ -434,24 +497,48 @@ func (cfg *apiCfg) SubmitForm(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-
-	// Create contact in Brevo
-	contact := contact{
-		Email: formData.Email,
-		Attributes: attributes{
-			FirstName: formData.FirstName,
-			LastName:  formData.LastName,
-			Sms:       formData.Number,
-		},
-		ListIDs: []int64{6},
-		UpdateEnabled: true,
+	// Extract contact ID from response
+	var respData struct {
+		ID string `json:"ID"`
+	}
+	err = json.NewDecoder(resp.Body).Decode(&respData)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Could not decode response", err)
+		return
 	}
 
+	contactID := respData.ID
 
-	err = cfg.CreateContact(contact)
+	// Create Note for Contact
+	notePayload := requestNote{
+		ContactID: contactID,
+		Note:      "Submitted a contact form with the following message:\n" + formData.Message,
+	}
+
+	notePayloadJSON, err := json.Marshal(notePayload)
 	if err != nil {
-		log.Printf("Error creating contact in Brevo: %s", err)
-		respondWithError(w, http.StatusInternalServerError, "Could not create contact in Brevo", err)
+		respondWithError(w, http.StatusInternalServerError, "Could not marshal note JSON", err)
+		return
+	}
+
+	noteReq, err := http.NewRequest("POST", notesURL, bytes.NewBuffer(notePayloadJSON))
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Could not create note request", err)
+		return
+	}
+
+	noteReq.Header.Set("Content-Type", "application/json")
+	noteReq.Header.Set("X-API-Key", cfg.CRMAPIKey)
+
+	noteResp, err := client.Do(noteReq)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Could not send note request", err)
+		return
+	}
+	defer noteResp.Body.Close()
+
+	if noteResp.StatusCode != http.StatusOK {
+		respondWithError(w, http.StatusInternalServerError, "Could not create note", err)
 		return
 	}
 
