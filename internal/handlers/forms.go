@@ -3,7 +3,6 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -133,15 +132,6 @@ func (cfg *apiCfg) CalculateMortgage(w http.ResponseWriter, req *http.Request) {
 	var respData struct {
 		ID string `json:"ID"`
 	}
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("Error reading response body: %s", err)
-		respondWithError(w, http.StatusInternalServerError, "Could not read response body", err)
-		return
-	}
-
-	log.Printf("CRM response status: %s", resp.Status)
-	log.Printf("CRM response body: %s", string(bodyBytes))
 	err = json.NewDecoder(resp.Body).Decode(&respData)
 	if err != nil {
 		log.Printf("Error decoding response: %s", err)
