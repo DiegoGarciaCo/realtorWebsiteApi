@@ -1,0 +1,23 @@
+services:
+  app:
+    image: realtorbackend:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=${PORT}
+      - DATABASE_URL=${DATABASE_URL}
+      - TOKEN_SECRET=${TOKEN_SECRET}
+      - S3_REGION=${S3_REGION}
+      - S3_BUCKET=${S3_BUCKET}
+      - AWS_ACCESS_KEY=${AWS_ACCESS_KEY}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - CRM_API_KEY=${CRM_API_KEY}
+      - POSTMARK_SERVER_TOKEN=${POSTMARK_SERVER_TOKEN}
+      - FROM_EMAIL_ADDRESS=${FROM_EMAIL_ADDRESS}
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
