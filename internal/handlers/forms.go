@@ -132,6 +132,7 @@ func (cfg *apiCfg) CalculateMortgage(w http.ResponseWriter, req *http.Request) {
 	var respData struct {
 		ID string `json:"ID"`
 	}
+	log.Printf("Response Body: %s", resp.Body)
 	err = json.NewDecoder(resp.Body).Decode(&respData)
 	if err != nil {
 		log.Printf("Error decoding response: %s", err)
@@ -140,6 +141,7 @@ func (cfg *apiCfg) CalculateMortgage(w http.ResponseWriter, req *http.Request) {
 	}
 
 	contactID := respData.ID
+	log.Printf("Created contact with ID: %s", contactID)
 
 	// Create Note for Contact
 	notePayload := requestNote{
